@@ -14,21 +14,37 @@
     overflow: hidden; -webkit-font-smoothing: none;
   }
 
-  /* ---------- Mobile top key bar ---------- */
-  #mobileKeys {
+  /* ---------- 顶部按钮栏包装 ---------- */
+  #topWrap {
     position: fixed;
-    left: 0; right: 0; top: 0;
+    top: 0; left: 0; right: 0;
+    z-index: 30;
+    pointer-events: none;
+  }
+  #hoverTrigger {
+    height: 8px;
+    pointer-events: auto;
+  }
+  body.touch #hoverTrigger { display: none; }
+
+  /* 移除了 border-bottom —— 不再有横线 */
+  #mobileKeys {
     display: flex;
     gap: 3px;
     padding: calc(6px + env(safe-area-inset-top)) 6px 6px;
     background: #0a0a0a;
-    border-bottom: 1px solid #333;
-    z-index: 30;
-    cursor: default;
+    pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
+    transition: transform 0.25s ease;
   }
-  #mobileKeys.hidden { display: none; }
+  body.desktop #mobileKeys {
+    transform: translateY(-100%);
+  }
+  body.desktop #topWrap:hover #mobileKeys {
+    transform: translateY(0);
+  }
+
   #mobileKeys button {
     flex: 1 1 0;
     min-width: 0;
@@ -54,15 +70,71 @@
   }
   #mobileKeys button:active { background: #222; }
 
-  /* ---------- Screen ---------- */
+  /* 键盘面板 —— 也去掉边框线 */
+  #keyboardPanel {
+    background: #0a0a0a;
+    padding: 0 4px;
+    pointer-events: auto;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #keyboardPanel.visible {
+    max-height: 300px;
+    padding: 6px 4px 8px;
+  }
+
+  .kb-row {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 3px;
+    justify-content: center;
+  }
+  .kb-row:last-child { margin-bottom: 0; }
+  .kb-row[data-row="q2"] { padding: 0 4%; }
+  .kb-row[data-row="q3"] { padding: 0 10%; }
+
+  .kb-key {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #c0c0c0;
+    font: inherit;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 9px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+    text-align: center;
+    transition: background 0.1s ease, border-color 0.1s ease;
+  }
+  .kb-key.active {
+    background: #0000aa;
+    border-color: #5555ff;
+    color: #fff;
+  }
+
+  /* ---------- 屏幕 ---------- */
   #screen {
     height: 100vh; overflow-y: auto;
     padding: 8px 12px 60px 12px;
     white-space: pre-wrap; word-break: break-word; line-height: 1.3;
     scrollbar-width: thin; scrollbar-color: #555 #000;
+    transition: padding-top 0.25s ease;
   }
-  body.has-mobile-bar #screen {
-    padding-top: calc(64px + env(safe-area-inset-top));
+  body.touch #screen {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+  body.touch.kb-open #screen {
+    padding-top: calc(60px + 220px + env(safe-area-inset-top));
   }
   #screen::-webkit-scrollbar { width: 12px; }
   #screen::-webkit-scrollbar-track { background: #000; }
@@ -91,15 +163,19 @@
     pointer-events: none;
   }
 
-  /* ---------- EDIT overlay ---------- */
+  /* ---------- EDIT 覆盖层 ---------- */
   #editorOverlay {
     position: fixed; inset: 0; background: #000;
     display: flex; flex-direction: column;
     padding: 8px 12px;
     z-index: 10; cursor: default;
+    transition: padding-top 0.25s ease;
   }
-  body.has-mobile-bar #editorOverlay {
-    padding-top: calc(64px + env(safe-area-inset-top));
+  body.touch #editorOverlay {
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+  body.touch.kb-open #editorOverlay {
+    padding-top: calc(60px + 220px + env(safe-area-inset-top));
   }
   #editorOverlay.hidden { display: none; }
   #editorTitle { color: #fff; background: #0000aa; padding: 2px 8px; white-space: pre; }
@@ -141,17 +217,20 @@
   <div id="editorHint">Ctrl+S = Save &amp; Exit&nbsp;&nbsp;|&nbsp;&nbsp;Esc = Cancel</div>
 </div>
 
-<!-- Mobile auxiliary key bar (top of screen, always visible on touch devices) -->
-<div id="mobileKeys" class="hidden">
-  <button type="button" data-mod="ctrl">Ctrl</button>
-  <button type="button" data-mod="alt">Alt</button>
-  <button type="button" data-mod="shift">Shift</button>
-  <button type="button" data-key="esc">Esc</button>
-  <button type="button" data-key="tab">Tab</button>
-  <button type="button" data-key="left">←</button>
-  <button type="button" data-key="right">→</button>
-  <button type="button" data-key="up">↑</button>
-  <button type="button" data-key="down">↓</button>
+<div id="topWrap">
+  <div id="hoverTrigger"></div>
+  <div id="mobileKeys">
+    <button type="button" data-mod="ctrl">Ctrl</button>
+    <button type="button" data-mod="alt">Alt</button>
+    <button type="button" data-mod="shift">Shift</button>
+    <button type="button" data-key="esc">Esc</button>
+    <button type="button" data-key="tab">Tab</button>
+    <button type="button" data-key="left">←</button>
+    <button type="button" data-key="right">→</button>
+    <button type="button" data-key="up">↑</button>
+    <button type="button" data-key="down">↓</button>
+  </div>
+  <div id="keyboardPanel"></div>
 </div>
 
 <script>
@@ -168,8 +247,14 @@ const editorArea    = document.getElementById('editorArea');
 const editorCursor  = document.getElementById('editorCursor');
 const editorMeasure = document.getElementById('editorMeasure');
 const mobileKeysEl  = document.getElementById('mobileKeys');
+const keyboardPanel = document.getElementById('keyboardPanel');
 
-/* ========== English source strings ========== */
+/* ========== 设备判定 ========== */
+const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if (isTouch) document.body.classList.add('touch');
+else         document.body.classList.add('desktop');
+
+/* ========== 英文字符串 ========== */
 const EN = {
   version:'MS-DOS Version 6.22', badCmd:'Bad command or file name - ',
   fileNotFound:'File not found', invalidPath:'Invalid path', invalidDir:'Invalid directory',
@@ -254,7 +339,7 @@ const EN = {
 };
 function t(k) { return EN[k] !== undefined ? EN[k] : k; }
 
-/* ========== Translation ========== */
+/* ========== 翻译 ========== */
 let targetLang = null;
 const trCache = new Map();
 
@@ -269,9 +354,7 @@ async function translateText(text) {
     const tr = (data && data.responseData && data.responseData.translatedText) || text;
     trCache.set(text, tr);
     return tr;
-  } catch (e) {
-    return text;
-  }
+  } catch (e) { return text; }
 }
 
 async function setLanguage(code) {
@@ -289,7 +372,6 @@ async function setLanguage(code) {
   try { localStorage.setItem('msdos-lang', code); } catch (e) {}
 
   print(t('langLoading'));
-
   const nodes = outputEl.querySelectorAll('[data-src]');
   for (const el of nodes) {
     if (el.dataset.notrans) continue;
@@ -299,7 +381,7 @@ async function setLanguage(code) {
   print(t('langSet') + code);
 }
 
-/* ========== Virtual disk ========== */
+/* ========== 虚拟磁盘 ========== */
 let cwd = [];
 function defaultDisk() {
   return { name:'C:', type:'dir', children:{
@@ -328,7 +410,7 @@ function loadDisk() {
   } catch(e){}
 }
 
-/* ========== Path helpers ========== */
+/* ========== 路径工具 ========== */
 function parsePath(str, base) {
   str = String(str==null?'':str).trim();
   let parts;
@@ -349,7 +431,7 @@ function pathString(p) { return 'C:\\' + p.join('\\'); }
 function promptString() { return pathString(cwd) + '>'; }
 function updatePrompt() { promptEl.textContent = promptString(); refreshCmdCursor(); }
 
-/* ========== Output ========== */
+/* ========== 输出 ========== */
 function print(text, skipTranslate) {
   const div = document.createElement('div');
   div.className = 'line';
@@ -365,7 +447,7 @@ function print(text, skipTranslate) {
 function printRaw(text) { print(text, true); }
 function scrollBottom() { screenEl.scrollTop = screenEl.scrollHeight; }
 
-/* ========== Helpers ========== */
+/* ========== 小工具 ========== */
 function padName(n) { n = String(n); return n.length >= 12 ? n.slice(0,12) : n.padEnd(12,' '); }
 function sizeStr(n) { return String(n).padStart(9, ' '); }
 function dateStr() {
@@ -393,7 +475,7 @@ function splitRedirect(line) {
   return { cmd: line.trim(), out: null };
 }
 
-/* ========== Y/N confirmation ========== */
+/* ========== Y/N 确认 ========== */
 let pendingConfirm = null;
 function confirmYesNo(question, onYes, onNo) {
   const div = document.createElement('div');
@@ -414,7 +496,7 @@ function confirmYesNo(question, onYes, onNo) {
   pendingConfirm = { onYes, onNo };
 }
 
-/* ========== Block cursors ========== */
+/* ========== 方块光标 ========== */
 function measureCmdText(text) { cmdMeasure.textContent = text; return cmdMeasure.getBoundingClientRect().width; }
 function refreshCmdCursor() {
   if (document.activeElement !== inputEl) { blockCursor.style.visibility = 'hidden'; return; }
@@ -489,7 +571,7 @@ async function cmdPy(args) {
   }
 }
 
-/* ========== Commands ========== */
+/* ========== 命令 ========== */
 function cmdHelp() {
   print(t('helpTitle'));
   print('');
@@ -696,40 +778,313 @@ function closeEditor() {
   inputEl.focus(); refreshCmdCursor();
 }
 
+/* ---- 真实电脑文件交换 ---- */
+async function saveFileToRealPC(filename, content) {
+  const blob = new Blob([content], { type:'text/plain;charset=utf-8' });
+  if (window.showSaveFilePicker) {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: filename });
+      const w = await h.createWritable(); await w.write(blob); await w.close(); return true;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return false;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  return true;
+}
+async function writeTree(dirHandle, node) {
+  for (const [name, child] of Object.entries(node.children)) {
+    if (child.type === 'dir') {
+      const sub = await dirHandle.getDirectoryHandle(name, { create: true });
+      await writeTree(sub, child);
+    } else {
+      const fh = await dirHandle.getFileHandle(name, { create: true });
+      const w = await fh.createWritable();
+      await w.write(new Blob([child.content], { type:'text/plain;charset=utf-8' }));
+      await w.close();
+    }
+  }
+}
+function collectFiles(node, prefix, out) {
+  out = out || [];
+  for (const [name, child] of Object.entries(node.children)) {
+    if (child.type === 'dir') collectFiles(child, prefix + name + '_', out);
+    else out.push({ name: prefix + name, content: child.content });
+  }
+  return out;
+}
+async function cmdSave(args) {
+  if (!args.length) { print(t('missingParam')); return; }
+  const p = parsePath(args[0], cwd);
+  const node = getNode(p);
+  if (!node || node.type !== 'file') { print(t('fileNotFound')); return; }
+  const fname = p[p.length-1];
+  print(t('saving') + ' ' + fname + ' ...');
+  const ok = await saveFileToRealPC(fname, node.content);
+  print(ok ? t('savedTo') + fname : t('saveCancelled'));
+}
+async function cmdSaveAll() {
+  if (window.showDirectoryPicker) {
+    try {
+      print(t('chooseFolder'));
+      const dir = await window.showDirectoryPicker({ mode:'readwrite' });
+      await writeTree(dir, disk);
+      print(t('savedAll')); return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') { print(t('cancelled')); return; }
+      print(t('saveFailed') + err.message); return;
+    }
+  }
+  const files = collectFiles(disk, '');
+  print(t('noFolderSupport') + files.length + t('filesWord'));
+  for (const f of files) { await saveFileToRealPC(f.name, f.content); await sleep(350); }
+  print(t('allDownloads'));
+}
+function cmdLoad() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.multiple = true;
+  inp.onchange = async () => {
+    const target = getNode(cwd);
+    if (!target) return;
+    for (const f of inp.files) {
+      const text = await f.text();
+      const name = f.name.toUpperCase();
+      target.children[name] = { type:'file', content: text };
+      print(t('loaded') + name + ' (' + text.length + ' ' + t('byteUnit') + ')');
+    }
+    saveDisk();
+  };
+  inp.click();
+  print(t('selectFiles'));
+}
+function cmdFormat(args) {
+  const ok = args.some(a => ['/Y','/Q'].includes(a.toUpperCase()));
+  if (!ok) { print(t('formatWarn1')); print(t('formatWarn2')); return; }
+  disk = { name:'C:', type:'dir', children:{ 'DOS':{type:'dir',children:{}}, 'PY':{type:'dir',children:{}} } };
+  cwd = []; saveDisk(); updatePrompt(); print(t('formatDone'));
+}
+function cmdReset() {
+  disk = defaultDisk(); cwd = []; saveDisk(); updatePrompt();
+  print(t('factoryReset'));
+}
+function cmdExit() { print(''); print(t('exit1')); print(t('exit2')); }
+
+/* ========== 命令表 ========== */
+const COMMANDS = {
+  HELP: cmdHelp, '?': cmdHelp,
+  DIR: cmdDir, DIRECTORY: cmdDir,
+  CD: cmdCd, CHDIR: cmdCd,
+  MD: cmdMd, MKDIR: cmdMd,
+  RD: cmdRd, RMDIR: cmdRd,
+  DEL: cmdDel, ERASE: cmdDel,
+  TYPE: cmdType, COPY: cmdCopy,
+  REN: cmdRen, RENAME: cmdRen,
+  ECHO: cmdEcho, CLS: cmdCls, VER: cmdVer,
+  DATE: cmdDate, TIME: cmdTime, TREE: cmdTree,
+  EDIT: cmdEdit,
+  PY: cmdPy, PYTHON: cmdPy,
+  LANG: cmdLang, LANGUAGE: cmdLang,
+  IMPORT: cmdImport, IMPORTDATA: cmdImport,
+  EXPORT: cmdExport,
+  SAVE: cmdSave, SAVEALL: cmdSaveAll, LOAD: cmdLoad,
+  FORMAT: cmdFormat, RESET: cmdReset, EXIT: cmdExit
+};
+
+async function runCommand(line) {
+  const { cmd, out } = splitRedirect(line);
+  const tokens = tokenize(cmd);
+  if (!tokens.length) return;
+  const name = tokens[0].toUpperCase();
+  const args = tokens.slice(1);
+  const fn = COMMANDS[name];
+  if (!fn) { print(t('badCmd') + tokens[0]); return; }
+  await fn(args, out);
+}
+
 /* =========================================================
-   Mobile auxiliary key bar (top, always visible on touch)
+   键盘面板：构建
    ========================================================= */
-const modState = { ctrl:false, alt:false, shift:false };
+const KB_ROWS = [
+  { row:'num', keys:['1','2','3','4','5','6','7','8','9','0'] },
+  { row:'q1',  keys:['q','w','e','r','t','y','u','i','o','p'] },
+  { row:'q2',  keys:['a','s','d','f','g','h','j','k','l'] },
+  { row:'q3',  keys:['z','x','c','v','b','n','m'] },
+  { row:'sym', keys:['`','-','=','[',']','\\',';',"'",',','.','/'] }
+];
 
-function isTouchDevice() {
-  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+(function buildKeyboard() {
+  for (const r of KB_ROWS) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    rowEl.dataset.row = r.row;
+    for (const k of r.keys) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'kb-key';
+      b.dataset.key = k;
+      b.textContent = k;
+      rowEl.appendChild(b);
+    }
+    keyboardPanel.appendChild(rowEl);
+  }
+})();
+
+/* =========================================================
+   修饰键 + 字符键 → 组合键
+   ========================================================= */
+const SHIFT_MAP = {
+  '1':'!','2':'@','3':'#','4':'$','5':'%','6':'^','7':'&','8':'*','9':'(','0':')',
+  '-':'_','=':'+','[':'{',']':'}','\\':'|',';':':',"'":'"',',':'<','.':'>','/':'?','`':'~'
+};
+
+function triggerCombo(mod, key) {
+  const isEditor = !editorOverlay.classList.contains('hidden');
+  const el = isEditor ? editorArea : inputEl;
+
+  /* ---- Ctrl ---- */
+  if (mod === 'ctrl') {
+    const k = key.toLowerCase();
+    if (k === 's') {
+      if (isEditor) { saveEditorFile(); closeEditor(); }
+      return true;
+    }
+    if (k === 'l') { outputEl.innerHTML = ''; return true; }
+    if (k === 'c') {
+      pendingConfirm = null;
+      if (isEditor) { editorArea.value = ''; refreshEditorCursor(); }
+      else { inputEl.value = ''; refreshCmdCursor(); }
+      return true;
+    }
+    if (k === 'a') {
+      el.focus();
+      el.select();
+      if (isEditor) refreshEditorCursor(); else refreshCmdCursor();
+      return true;
+    }
+    return false;
+  }
+
+  /* ---- Alt ---- */
+  if (mod === 'alt') {
+    return false;
+  }
+
+  /* ---- Shift ---- */
+  if (mod === 'shift') {
+    let ch = key;
+    if (/^[a-z]$/.test(key)) ch = key.toUpperCase();
+    else if (SHIFT_MAP[key]) ch = SHIFT_MAP[key];
+
+    const s = el.selectionStart, e = el.selectionEnd;
+    el.value = el.value.slice(0, s) + ch + el.value.slice(e);
+    el.selectionStart = el.selectionEnd = s + ch.length;
+    if (isEditor) refreshEditorCursor(); else refreshCmdCursor();
+    return true;
+  }
+
+  return false;
 }
 
-function updateMobileBar() {
-  const show = isTouchDevice();
-  mobileKeysEl.classList.toggle('hidden', !show);
-  document.body.classList.toggle('has-mobile-bar', show);
-}
+/* =========================================================
+   键盘面板：打开 / 关闭
+   ========================================================= */
+let activeMod = null;
+let kbActiveBtn = null;
 
-function resetMods() {
-  modState.ctrl = false;
-  modState.alt = false;
-  modState.shift = false;
+function openKeyboard(mod) {
+  activeMod = mod;
   mobileKeysEl.querySelectorAll('button[data-mod]').forEach(b => {
-    b.classList.toggle('active', modState[b.dataset.mod]);
+    b.classList.toggle('active', b.dataset.mod === mod);
   });
+  keyboardPanel.classList.add('visible');
+  document.body.classList.add('kb-open');
 }
 
-/* 当前焦点所在的可编辑元素（编辑器优先，否则命令行） */
-function currentTarget() {
-  return editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
+function closeKeyboard() {
+  activeMod = null;
+  kbActiveBtn = null;
+  mobileKeysEl.querySelectorAll('button[data-mod]').forEach(b => b.classList.remove('active'));
+  keyboardPanel.classList.remove('visible');
+  keyboardPanel.querySelectorAll('.kb-key.active').forEach(b => b.classList.remove('active'));
+  document.body.classList.remove('kb-open');
 }
+
+/* 按键按下：高亮 */
+keyboardPanel.addEventListener('pointerdown', e => {
+  const btn = e.target.closest ? e.target.closest('.kb-key') : null;
+  if (!btn) return;
+  e.preventDefault();
+  if (kbActiveBtn) kbActiveBtn.classList.remove('active');
+  kbActiveBtn = btn;
+  btn.classList.add('active');
+});
+
+/* 手指 / 鼠标松开：触发组合键并关闭面板 */
+document.addEventListener('pointerup', e => {
+  if (!kbActiveBtn) return;
+  const tgt = e.target;
+  const btn = (tgt && tgt.closest) ? tgt.closest('.kb-key') : null;
+
+  if (btn === kbActiveBtn) {
+    const key = kbActiveBtn.dataset.key;
+    const mod = activeMod;
+    kbActiveBtn.classList.remove('active');
+    kbActiveBtn = null;
+    closeKeyboard();
+    if (mod) triggerCombo(mod, key);
+  } else {
+    kbActiveBtn.classList.remove('active');
+    kbActiveBtn = null;
+  }
+});
+
+/* 点击面板外区域：关闭面板 */
+document.addEventListener('pointerdown', e => {
+  if (!keyboardPanel.classList.contains('visible')) return;
+  const tgt = e.target;
+  if (keyboardPanel.contains(tgt)) return;
+  if (mobileKeysEl.contains(tgt)) return;
+  closeKeyboard();
+}, true);
 
 /* =========================================================
-   软键盘按键处理
+   屏幕按键栏交互
    ========================================================= */
+const blocker = e => e.preventDefault();
+mobileKeysEl.addEventListener('mousedown', blocker);
+mobileKeysEl.addEventListener('touchstart', blocker, { passive: false });
+keyboardPanel.addEventListener('mousedown', blocker);
+keyboardPanel.addEventListener('touchstart', blocker, { passive: false });
 
-/* 命令补全 */
+/* 修饰键：按下就弹出键盘（响应更快） */
+mobileKeysEl.addEventListener('pointerdown', e => {
+  const btn = e.target.closest('button');
+  if (!btn || !btn.dataset.mod) return;
+  e.preventDefault();
+  const m = btn.dataset.mod;
+  if (activeMod === m && keyboardPanel.classList.contains('visible')) {
+    closeKeyboard();
+  } else {
+    openKeyboard(m);
+  }
+});
+
+/* 其他按键：单击触发动作 */
+mobileKeysEl.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.dataset.mod) return;   /* 已在 pointerdown 处理 */
+  const key = btn.dataset.key;
+  if (key) handleMobileKey(key);
+});
+
+/* =========================================================
+   普通按键（Esc / Tab / 方向键）
+   ========================================================= */
 function commandComplete() {
   const val = inputEl.value;
   if (!val.trim()) return;
@@ -749,47 +1104,12 @@ function commandComplete() {
   }
 }
 
-/* 按词移动 */
-function wordMove(el, dir) {
-  const v = el.value;
-  let p = dir < 0 ? el.selectionStart : el.selectionEnd;
-  if (dir < 0) {
-    while (p > 0 && /\s/.test(v[p-1])) p--;
-    while (p > 0 && !/\s/.test(v[p-1])) p--;
-  } else {
-    while (p < v.length && !/\s/.test(v[p])) p++;
-    while (p < v.length && /\s/.test(v[p])) p++;
-  }
-  return p;
-}
-
-/* 触发 Ctrl 组合键（供软键盘按钮和软键盘字符键共用） */
-function fireCtrlShortcut(k) {
-  const isEditor = !editorOverlay.classList.contains('hidden');
-  if (k === 's') {
-    if (isEditor) { saveEditorFile(); closeEditor(); }
-    return true;
-  }
-  if (k === 'l') {
-    outputEl.innerHTML = '';
-    return true;
-  }
-  if (k === 'c') {
-    /* 取消：清空待确认、清空输入 */
-    pendingConfirm = null;
-    if (isEditor) { editorArea.value = ''; refreshEditorCursor(); }
-    else { inputEl.value = ''; refreshCmdCursor(); }
-    return true;
-  }
-  return false;
-}
-
 function handleMobileKey(key) {
   const isEditor = !editorOverlay.classList.contains('hidden');
   const el = isEditor ? editorArea : inputEl;
 
   if (key === 'esc') {
-    resetMods();
+    closeKeyboard();
     if (isEditor) closeEditor();
     else { inputEl.value = ''; refreshCmdCursor(); }
     return;
@@ -827,121 +1147,56 @@ function handleMobileKey(key) {
         if (lineStart === 0) return;
         const prevEnd = lineStart - 1;
         const prevStart = v.lastIndexOf('\n', prevEnd - 1) + 1;
-        const newPos = Math.min(prevStart + col, prevEnd);
-        el.selectionStart = el.selectionEnd = newPos;
+        el.selectionStart = el.selectionEnd = Math.min(prevStart + col, prevEnd);
       } else {
         const lineEnd = v.indexOf('\n', pos);
         if (lineEnd === -1) return;
         const nextStart = lineEnd + 1;
         const nextEnd = v.indexOf('\n', nextStart);
         const maxLen = nextEnd === -1 ? v.length : nextEnd;
-        const newPos = Math.min(nextStart + col, maxLen);
-        el.selectionStart = el.selectionEnd = newPos;
+        el.selectionStart = el.selectionEnd = Math.min(nextStart + col, maxLen);
       }
       refreshEditorCursor();
     }
-    if (modState.ctrl || modState.alt || modState.shift) resetMods();
     return;
   }
 
   if (key === 'left' || key === 'right') {
     const dir = key === 'left' ? -1 : 1;
-    if (modState.ctrl || modState.alt) {
-      el.selectionStart = el.selectionEnd = wordMove(el, dir);
-    } else if (modState.shift) {
-      if (dir < 0) el.selectionStart = Math.max(0, el.selectionStart - 1);
-      else el.selectionEnd = Math.min(el.value.length, el.selectionEnd + 1);
-    } else {
-      const cur = dir < 0 ? el.selectionStart : el.selectionEnd;
-      const newPos = Math.max(0, Math.min(el.value.length, cur + dir));
-      el.selectionStart = el.selectionEnd = newPos;
-    }
+    const cur = dir < 0 ? el.selectionStart : el.selectionEnd;
+    const newPos = Math.max(0, Math.min(el.value.length, cur + dir));
+    el.selectionStart = el.selectionEnd = newPos;
     if (isEditor) refreshEditorCursor();
     else refreshCmdCursor();
-    if (modState.ctrl || modState.alt || modState.shift) resetMods();
     return;
   }
 }
 
 /* =========================================================
-   键盘事件：合并真实修饰键和屏幕上的修饰键
+   键盘事件（物理键盘）
    ========================================================= */
 function handleModKeys(e, isEditor) {
-  const ctrl = e.ctrlKey || modState.ctrl;
-  const alt  = e.altKey  || modState.alt;
-
-  /* Esc 键 */
   if (e.key === 'Escape') {
     e.preventDefault();
-    resetMods();
+    closeKeyboard();
     if (isEditor) closeEditor();
     else { inputEl.value = ''; refreshCmdCursor(); }
     return true;
   }
-
-  /* Ctrl + 字符键（软键盘输入字符时也能识别） */
-  if (ctrl && e.key.length === 1) {
+  if (e.ctrlKey && e.key.length === 1) {
     const k = e.key.toLowerCase();
     e.preventDefault();
-    const handled = fireCtrlShortcut(k);
-    resetMods();
-    if (handled) return true;
-    return false;
+    return triggerCombo('ctrl', k);
   }
-
-  /* Alt + 字符键暂时不处理，防止意外输入 */
-  if (alt && e.key.length === 1) {
+  if (e.altKey && e.key.length === 1) {
     e.preventDefault();
-    resetMods();
     return true;
   }
-
   return false;
 }
 
-/* 编辑器键盘事件 */
 editorArea.addEventListener('keydown', e => {
   if (handleModKeys(e, true)) return;
-
-  if (e.ctrlKey && e.key.toLowerCase() === 's') {
-    e.preventDefault();
-    saveEditorFile();
-    closeEditor();
-    resetMods();
-    return;
-  }
-});
-
-/* 命令行的键盘事件在下方统一处理 */
-
-/* =========================================================
-   屏幕按键栏交互
-   ========================================================= */
-/* 阻止默认行为，避免软键盘收起 */
-mobileKeysEl.addEventListener('mousedown', e => e.preventDefault());
-mobileKeysEl.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-
-mobileKeysEl.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-
-  /* 修饰键：切换 */
-  if (btn.dataset.mod) {
-    const m = btn.dataset.mod;
-    modState[m] = !modState[m];
-    btn.classList.toggle('active', modState[m]);
-    const tgt = currentTarget();
-    if (document.activeElement !== tgt) tgt.focus();
-    return;
-  }
-
-  /* 普通按键 */
-  const key = btn.dataset.key;
-  if (key) {
-    handleMobileKey(key);
-    const tgt = currentTarget();
-    if (document.activeElement !== tgt) tgt.focus();
-  }
 });
 
 /* =========================================================
@@ -950,7 +1205,6 @@ mobileKeysEl.addEventListener('click', e => {
 let history = [], histIdx = 0;
 
 inputEl.addEventListener('keydown', async e => {
-  /* 先处理修饰键组合 */
   if (handleModKeys(e, false)) return;
 
   if (e.key === 'Enter') {
@@ -1014,7 +1268,7 @@ screenEl.addEventListener('click', e => {
   inputEl.focus(); refreshCmdCursor();
 });
 
-/* ========== Boot ========== */
+/* ========== 启动 ========== */
 (function boot() {
   loadDisk();
   updatePrompt();
@@ -1026,7 +1280,6 @@ screenEl.addEventListener('click', e => {
     if (saved) { targetLang = saved; document.documentElement.lang = saved; }
   } catch (e) {}
 
-  updateMobileBar();
   inputEl.focus();
   refreshCmdCursor();
 })();
