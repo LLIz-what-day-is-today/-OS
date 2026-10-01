@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MS-DOS Command Prompt</title>
 <style>
   * { box-sizing: border-box; }
@@ -14,7 +14,7 @@
     overflow: hidden; -webkit-font-smoothing: none;
   }
   #screen {
-    height: 100vh; overflow-y: auto; padding: 8px 12px 60px 12px;
+    height: 100vh; overflow-y: auto; padding: 8px 12px 110px 12px;
     white-space: pre-wrap; word-break: break-word; line-height: 1.3;
     scrollbar-width: thin; scrollbar-color: #555 #000;
   }
@@ -50,7 +50,7 @@
   }
   #editorOverlay.hidden { display: none; }
   #editorTitle { color: #fff; background: #0000aa; padding: 2px 8px; white-space: pre; }
-  #editorWrap { position: relative; flex: 1; min-height: 0; }
+  #editorWrap { position: relative; flex: 1; min-height: 0; margin-bottom: 70px; }
   #editorArea {
     position: absolute; inset: 0; width: 100%; height: 100%;
     background: #000; color: #c0c0c0; font: inherit; font-weight: bold;
@@ -62,6 +62,48 @@
   #editorArea::-webkit-scrollbar-track { background: #000; }
   #editorArea::-webkit-scrollbar-thumb { background: #444; }
   #editorHint { color: #808080; padding-top: 4px; }
+
+  /* ---------- Mobile keyboard bar ---------- */
+  #mobileKeys {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: #0a0a0a;
+    border-top: 1px solid #333;
+    z-index: 30;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #mobileKeys.hidden { display: none; }
+  #mobileKeys button {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #c0c0c0;
+    font: inherit;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 10px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    white-space: nowrap;
+  }
+  #mobileKeys button.active {
+    background: #0000aa;
+    border-color: #5555ff;
+    color: #ffffff;
+  }
+  #mobileKeys button:active {
+    background: #222;
+  }
 </style>
 </head>
 <body>
@@ -88,6 +130,18 @@
   <div id="editorHint">Ctrl+S = Save &amp; Exit&nbsp;&nbsp;|&nbsp;&nbsp;Esc = Cancel</div>
 </div>
 
+<!-- Mobile auxiliary key bar -->
+<div id="mobileKeys" class="hidden">
+  <button type="button" data-mod="ctrl">Ctrl</button>
+  <button type="button" data-mod="alt">Alt</button>
+  <button type="button" data-mod="shift">Shift</button>
+  <button type="button" data-key="tab">Tab</button>
+  <button type="button" data-key="left">←</button>
+  <button type="button" data-key="right">→</button>
+  <button type="button" data-key="up">↑</button>
+  <button type="button" data-key="down">↓</button>
+</div>
+
 <script>
 /* ========== DOM ========== */
 const screenEl = document.getElementById('screen');
@@ -101,6 +155,7 @@ const editorTitle   = document.getElementById('editorTitle');
 const editorArea    = document.getElementById('editorArea');
 const editorCursor  = document.getElementById('editorCursor');
 const editorMeasure = document.getElementById('editorMeasure');
+const mobileKeysEl  = document.getElementById('mobileKeys');
 
 /* ========== English source strings ========== */
 const EN = {
@@ -137,7 +192,6 @@ const EN = {
   langUsage:'Usage: LANG <code>    (e.g. LANG ja, LANG fr, LANG zh-CN, LANG de)',
   langHelp:'Supported codes: en zh-CN zh-TW ja ko fr de es pt it ru ar hi th vi id tr pl nl sv da fi no cs el he uk hu ro',
   langFail:'Translation failed: ',
-
   importConfirm:'Are you sure you want to import the disk? Importing the disk will delete the current information.',
   importDone:'Disk imported successfully.',
   importBad:'Invalid disk file.',
@@ -145,7 +199,6 @@ const EN = {
   importCancelled:'Import cancelled.',
   exportDone:'Disk exported successfully.',
   exportName:'MSDOS_DISK.json',
-
   helpCmds:[
     '  HELP             Show this help screen',
     '  DIR  [path]      List files and subdirectories',
@@ -189,7 +242,7 @@ const EN = {
 };
 function t(k) { return EN[k] !== undefined ? EN[k] : k; }
 
-/* ========== Translation (MyMemory, free & CORS-enabled) ========== */
+/* ========== Translation ========== */
 let targetLang = null;
 const trCache = new Map();
 
@@ -211,7 +264,6 @@ async function translateText(text) {
 
 async function setLanguage(code) {
   if (!code) { print(t('langUsage')); print(t('langHelp')); return; }
-
   code = String(code).trim();
   const low = code.toLowerCase();
   if (low === 'zh' || low === 'cn') code = 'zh-CN';
@@ -226,7 +278,6 @@ async function setLanguage(code) {
 
   print(t('langLoading'));
 
-  /* 遍历所有带 data-src 的元素；带 data-notrans 的跳过（例如 [Y/N]） */
   const nodes = outputEl.querySelectorAll('[data-src]');
   for (const el of nodes) {
     if (el.dataset.notrans) continue;
@@ -247,23 +298,14 @@ function defaultDisk() {
     'CONFIG.SYS': { type:'file', content:
       'DEVICE=HIMEM.SYS\nDOS=HIGH,UMB\nFILES=40\nBUFFERS=20\n' },
     'README.TXT': { type:'file', content:
-      'MS-DOS Command Prompt\n' +
-      '=====================\n\n' +
-      'Commands:\n' +
-      '  HELP              list every command\n' +
-      '  DIR / CD / MD / RD\n' +
-      '  TYPE / COPY / DEL / REN\n' +
-      '  EDIT <file>       edit a text file\n' +
-      '  PY <file.py>      run a Python script\n' +
-      '  LANG <code>       switch UI language\n' +
-      '  IMPORT / EXPORT   whole-disk backup as JSON\n' +
-      '  SAVE / SAVEALL / LOAD\n' +
-      '  FORMAT / RESET / EXIT\n' },
+      'MS-DOS Command Prompt\n=====================\n\n' +
+      'Commands:\n  HELP / DIR / CD / MD / RD\n  TYPE / COPY / DEL / REN\n' +
+      '  EDIT <file>       edit a text file\n  PY <file.py>      run a Python script\n' +
+      '  LANG <code>       switch UI language\n  IMPORT / EXPORT   whole-disk backup as JSON\n' +
+      '  SAVE / SAVEALL / LOAD\n  FORMAT / RESET / EXIT\n' },
     'HELLO.PY': { type:'file', content:
-      '# HELLO.PY - a tiny Python demo\n' +
-      'print("Hello from Python!")\n' +
-      'print("2 + 3 =", 2 + 3)\n\n' +
-      'for i in range(5):\n    print("count:", i)\n' }
+      '# HELLO.PY - a tiny Python demo\nprint("Hello from Python!")\n' +
+      'print("2 + 3 =", 2 + 3)\n\nfor i in range(5):\n    print("count:", i)\n' }
   }};
 }
 let disk = defaultDisk();
@@ -341,29 +383,19 @@ function splitRedirect(line) {
 
 /* ========== Y/N confirmation ========== */
 let pendingConfirm = null;
-
-/**
- * 红色确认行。
- * - question 部分会跟随 LANG 翻译
- * - "[Y/N]" 部分固定显示，永不翻译
- */
 function confirmYesNo(question, onYes, onNo) {
   const div = document.createElement('div');
   div.className = 'line red';
-
   const qSpan = document.createElement('span');
   qSpan.dataset.src = question;
   qSpan.textContent = question;
   div.appendChild(qSpan);
-
   const ynSpan = document.createElement('span');
-  ynSpan.dataset.notrans = '1';       /* 关键：不会被翻译 */
+  ynSpan.dataset.notrans = '1';
   ynSpan.textContent = ' [Y/N] ';
   div.appendChild(ynSpan);
-
   outputEl.appendChild(div);
   scrollBottom();
-
   if (targetLang) {
     translateText(question).then(tr => { qSpan.textContent = tr; });
   }
@@ -586,7 +618,6 @@ function cmdTree(args) {
 
 /* ---- IMPORT / EXPORT ---- */
 function cmdImport() {
-  /* 问题句会跟随 LANG 翻译；[Y/N] 固定不翻译 */
   confirmYesNo(t('importConfirm'), () => {
     const inp = document.createElement('input');
     inp.type = 'file';
@@ -598,17 +629,11 @@ function cmdImport() {
         const text = await f.text();
         const data = JSON.parse(text);
         if (data && data.disk) {
-          disk = data.disk;
-          cwd = data.cwd || [];
-          saveDisk();
-          updatePrompt();
+          disk = data.disk; cwd = data.cwd || [];
+          saveDisk(); updatePrompt();
           print(t('importDone'));
-        } else {
-          print(t('importBad'));
-        }
-      } catch (e) {
-        print(t('importBad'));
-      }
+        } else { print(t('importBad')); }
+      } catch (e) { print(t('importBad')); }
     };
     inp.click();
     print(t('importPick'));
@@ -616,7 +641,6 @@ function cmdImport() {
     print(t('importCancelled'));
   });
 }
-
 async function cmdExport() {
   const json = JSON.stringify({ disk, cwd }, null, 2);
   const ok = await saveFileToRealPC(t('exportName'), json);
@@ -638,6 +662,7 @@ function cmdEdit(args) {
   editorArea.selectionStart = editorArea.selectionEnd = 0;
   editorArea.scrollTop = 0; editorArea.scrollLeft = 0;
   refreshEditorCursor();
+  updateMobileBar();
 }
 function closeEditor() {
   editorOverlay.classList.add('hidden');
@@ -788,6 +813,187 @@ async function runCommand(line) {
   if (!fn) { print(t('badCmd') + tokens[0]); return; }
   await fn(args, out);
 }
+
+/* =========================================================
+   Mobile auxiliary key bar
+   ========================================================= */
+const modState = { ctrl:false, alt:false, shift:false };
+
+function isTouchDevice() {
+  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+}
+
+function updateMobileBar() {
+  if (!isTouchDevice()) { mobileKeysEl.classList.add('hidden'); return; }
+  const focused = document.activeElement === inputEl || document.activeElement === editorArea;
+  mobileKeysEl.classList.toggle('hidden', !focused);
+}
+
+/* Stop the on-screen keyboard from being dismissed by taps on the bar */
+mobileKeysEl.addEventListener('mousedown', e => e.preventDefault());
+mobileKeysEl.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+
+/* Command-line Tab completion */
+function commandComplete() {
+  const val = inputEl.value;
+  if (!val.trim()) return;
+  const m = val.match(/^(\s*)(\S*)$/);
+  if (!m) return;
+  const prefix = m[2].toUpperCase();
+  if (!prefix) return;
+  const names = Object.keys(COMMANDS).filter(n => n.startsWith(prefix));
+  if (names.length === 0) return;
+  if (names.length === 1) {
+    inputEl.value = m[1] + names[0] + ' ';
+    inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length;
+    refreshCmdCursor();
+  } else {
+    print('');
+    print(names.join('  '));
+  }
+}
+
+/* Move cursor by word (Ctrl/Alt + arrow) */
+function wordMove(el, dir) {
+  const v = el.value;
+  let p = dir < 0 ? el.selectionStart : el.selectionEnd;
+  if (dir < 0) {
+    while (p > 0 && /\s/.test(v[p-1])) p--;
+    while (p > 0 && !/\s/.test(v[p-1])) p--;
+  } else {
+    while (p < v.length && !/\s/.test(v[p])) p++;
+    while (p < v.length && /\s/.test(v[p])) p++;
+  }
+  return p;
+}
+
+function handleMobileKey(key) {
+  const isEditor = document.activeElement === editorArea;
+  const el = isEditor ? editorArea : inputEl;
+
+  /* --- Tab --- */
+  if (key === 'tab') {
+    if (isEditor) {
+      const s = el.selectionStart, e = el.selectionEnd;
+      const v = el.value;
+      el.value = v.slice(0, s) + '\t' + v.slice(e);
+      el.selectionStart = el.selectionEnd = s + 1;
+      refreshEditorCursor();
+    } else {
+      commandComplete();
+    }
+    return;
+  }
+
+  /* --- Arrows --- */
+  if (key === 'up' || key === 'down') {
+    if (!isEditor) {
+      if (!history.length) return;
+      if (key === 'up') histIdx = Math.max(0, histIdx - 1);
+      else histIdx = Math.min(history.length, histIdx + 1);
+      inputEl.value = history[histIdx] || '';
+      setTimeout(() => {
+        inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length;
+        refreshCmdCursor();
+      }, 0);
+      if (modState.ctrl || modState.alt || modState.shift) resetMods();
+    } else {
+      /* In the editor, move a visual line (approximate) */
+      const v = el.value;
+      const pos = el.selectionStart;
+      const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
+      const col = pos - lineStart;
+      if (key === 'up') {
+        if (lineStart === 0) return;
+        const prevEnd = lineStart - 1;
+        const prevStart = v.lastIndexOf('\n', prevEnd - 1) + 1;
+        const newPos = Math.min(prevStart + col, prevEnd);
+        el.selectionStart = el.selectionEnd = newPos;
+      } else {
+        const lineEnd = v.indexOf('\n', pos);
+        if (lineEnd === -1) return;
+        const nextStart = lineEnd + 1;
+        const nextEnd = v.indexOf('\n', nextStart);
+        const maxLen = nextEnd === -1 ? v.length : nextEnd;
+        const newPos = Math.min(nextStart + col, maxLen);
+        el.selectionStart = el.selectionEnd = newPos;
+      }
+      refreshEditorCursor();
+    }
+    return;
+  }
+
+  if (key === 'left' || key === 'right') {
+    const dir = key === 'left' ? -1 : 1;
+    let newPos;
+
+    if (modState.ctrl || modState.alt) {
+      newPos = wordMove(el, dir);
+      el.selectionStart = el.selectionEnd = newPos;
+    } else if (modState.shift) {
+      if (dir < 0) el.selectionStart = Math.max(0, el.selectionStart - 1);
+      else el.selectionEnd = Math.min(el.value.length, el.selectionEnd + 1);
+    } else {
+      const cur = dir < 0 ? el.selectionStart : el.selectionEnd;
+      newPos = Math.max(0, Math.min(el.value.length, cur + dir));
+      el.selectionStart = el.selectionEnd = newPos;
+    }
+
+    if (isEditor) refreshEditorCursor();
+    else refreshCmdCursor();
+
+    if (modState.ctrl || modState.alt || modState.shift) resetMods();
+    return;
+  }
+}
+
+function resetMods() {
+  modState.ctrl = false;
+  modState.alt = false;
+  modState.shift = false;
+  mobileKeysEl.querySelectorAll('button[data-mod]').forEach(b => {
+    b.classList.toggle('active', modState[b.dataset.mod]);
+  });
+}
+
+mobileKeysEl.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  /* Modifier toggle */
+  if (btn.dataset.mod) {
+    const m = btn.dataset.mod;
+    modState[m] = !modState[m];
+    btn.classList.toggle('active', modState[m]);
+    /* Focus must stay on the input */
+    const target = editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
+    if (document.activeElement !== target) target.focus();
+    return;
+  }
+
+  /* Regular key */
+  const key = btn.dataset.key;
+  if (key) {
+    handleMobileKey(key);
+    /* Keep focus on the input to keep the soft keyboard open */
+    const target = editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
+    if (document.activeElement !== target) {
+      target.focus();
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = target.value.length;
+      }, 0);
+    }
+  }
+});
+
+/* Focus/blur → show/hide bar */
+inputEl.addEventListener('focus', updateMobileBar);
+inputEl.addEventListener('blur', () => setTimeout(updateMobileBar, 0));
+editorArea.addEventListener('focus', updateMobileBar);
+editorArea.addEventListener('blur', () => setTimeout(updateMobileBar, 0));
+
+/* Hide bar when EDIT overlay closes */
+const _origCloseEditor = closeEditor;
 
 /* ========== Input handling ========== */
 let history = [], histIdx = 0;
