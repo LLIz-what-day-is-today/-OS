@@ -18,15 +18,15 @@
   #topWrap { position: fixed; top: 0; left: 0; right: 0; z-index: 30; pointer-events: none; }
 
   #mobileKeys {
-    display: none;                /* 默认不显示 */
+    display: none;
     gap: 3px;
     padding: calc(6px + env(safe-area-inset-top)) 6px 6px;
     background: #0a0a0a;
     pointer-events: auto;
     user-select: none; -webkit-user-select: none;
   }
-  body.touch #mobileKeys { display: flex; }  /* 只有触摸设备显示 */
-  body.desktop #mobileKeys { display: none; } /* 电脑彻底不显示 */
+  body.touch #mobileKeys { display: flex; }
+  body.desktop #mobileKeys { display: none; }
 
   #mobileKeys button {
     flex: 1 1 0; min-width: 0;
@@ -111,7 +111,7 @@
     position: fixed; inset: 0; background: #000;
     display: flex; flex-direction: column;
     padding: 8px 12px;
-    z-index: 10; cursor: default;
+    z-index: 10; cursor: none;
     transition: padding-top 0.25s ease;
   }
   body.touch #editorOverlay { padding-top: calc(60px + env(safe-area-inset-top)); }
@@ -124,25 +124,25 @@
     background: #000; color: #c0c0c0; font: inherit; font-weight: bold;
     border: 0; outline: 0; resize: none; padding: 6px 0;
     white-space: pre; overflow: auto; caret-color: transparent;
-    cursor: text; scrollbar-width: thin; scrollbar-color: #555 #000;
+    cursor: none; scrollbar-width: thin; scrollbar-color: #555 #000;
   }
   #editorArea::-webkit-scrollbar { width: 12px; height: 12px; }
   #editorArea::-webkit-scrollbar-track { background: #000; }
   #editorArea::-webkit-scrollbar-thumb { background: #444; }
   #editorHint { color: #808080; padding-top: 4px; }
 
-  /* ============ 全屏应用（GUI / Explorer）通用 ============ */
+  /* ============ 全屏应用（GUI / Explorer） ============ */
   .fullscreen-app {
     position: fixed; inset: 0;
-    background: #0000aa;                 /* 蓝色底 */
+    background: #0000aa;
     display: flex; flex-direction: column;
-    z-index: 40;                          /* 高于顶部按键栏 */
-    cursor: default;
+    z-index: 40;
+    cursor: none;
   }
   .fullscreen-app.hidden { display: none; }
 
   .app-title {
-    background: #c0c0c0;                 /* 顶部灰色条 */
+    background: #c0c0c0;
     color: #000000;
     padding: 5px 10px;
     padding-top: calc(5px + env(safe-area-inset-top));
@@ -165,7 +165,7 @@
   .app-body::-webkit-scrollbar-thumb { background: #5555aa; }
 
   .app-status {
-    background: #c0c0c0;                 /* 底部灰色条 */
+    background: #c0c0c0;
     color: #000000;
     padding: 5px 10px;
     padding-bottom: calc(5px + env(safe-area-inset-bottom));
@@ -196,70 +196,58 @@
     border: 2px solid transparent;
     border-radius: 2px;
     padding: 8px 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     color: #ffffff;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
+    cursor: none;
+    user-select: none; -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     min-height: 88px;
   }
+
+  /* 真正的反色：用 filter: invert 反转整个方块 */
+  .gui-icon:hover,
   .gui-icon.selected {
-    background: #000088;
-    border-color: #ffffff;
-    outline: 1px dotted #ffffff;
-    outline-offset: -4px;
+    background: #0000aa;
+    border-color: #0000aa;
+    filter: invert(1);
   }
+
   .gui-icon .icon-img {
-    font-size: 30px;
-    line-height: 1;
-    margin-bottom: 6px;
+    font-size: 30px; line-height: 1; margin-bottom: 6px;
     font-family: "SVGAFix", "Consolas", "Courier New", monospace;
   }
   .gui-icon .icon-title {
-    font-size: 13px;
-    text-align: center;
-    word-break: break-word;
-    line-height: 1.2;
+    font-size: 13px; text-align: center;
+    word-break: break-word; line-height: 1.2;
   }
 
   /* ---------- Explorer 列表 ---------- */
-  .exp-list {
-    padding: 0;
-    margin: 0;
-  }
+  .exp-list { padding: 0; margin: 0; }
   .exp-item {
     padding: 6px 12px;
     color: #ffffff;
-    cursor: pointer;
+    cursor: none;
     white-space: pre;
     font-family: "SVGAFix", "Consolas", "Courier New", monospace;
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: none; -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     font-size: 14px;
   }
+
+  /* 真正的反色：用 filter: invert 反转整行 */
+  .exp-item:hover,
   .exp-item.selected {
-    background: #000088;
-    outline: 1px dotted #ffffff;
-    outline-offset: -2px;
+    background: #0000aa;
+    filter: invert(1);
   }
-  .exp-item .tag {
-    color: #ffff55;
-    margin-right: 8px;
-  }
+
+  .exp-item .tag { color: #ffff55; margin-right: 8px; }
   .exp-item.dir .tag { color: #55ffff; }
   .exp-item.parent .tag { color: #55ff55; }
 
   /* ---------- Explorer 底部按钮 ---------- */
-  .exp-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-  }
+  .exp-buttons { display: flex; flex-wrap: wrap; gap: 3px; }
   .exp-buttons button {
     flex: 1 1 auto;
     min-width: 60px;
@@ -272,11 +260,10 @@
     font-weight: bold;
     font-size: 12px;
     padding: 6px 8px;
-    cursor: pointer;
+    cursor: none;
     -webkit-tap-highlight-color: transparent;
     white-space: nowrap;
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: none; -webkit-user-select: none;
   }
   .exp-buttons button:active {
     border-top-color: #808080;
@@ -334,6 +321,7 @@
       <button type="button" data-act="cut">Cut</button>
       <button type="button" data-act="paste">Paste</button>
       <button type="button" data-act="new">New</button>
+      <button type="button" data-act="newfolder">NewFolder</button>
       <button type="button" data-act="delete">Del</button>
       <button type="button" data-act="close">Esc</button>
     </div>
@@ -1069,7 +1057,7 @@ async function runCommand(line) {
 }
 
 /* =========================================================
-   GUI（全屏，蓝底灰条）
+   GUI
    ========================================================= */
 let guiSel = 0;
 
@@ -1081,9 +1069,7 @@ const GUI_ICONS = [
   { id:'exit',     title:'Exit',     glyph:'X' }
 ];
 
-function getGUICols() {
-  return window.innerWidth < 500 ? 2 : 3;
-}
+function getGUICols() { return window.innerWidth < 500 ? 2 : 3; }
 
 function renderGUI() {
   guiIconsEl.innerHTML = '';
@@ -1095,7 +1081,10 @@ function renderGUI() {
       '<div class="icon-title">' + escapeHTML(icon.title) + '</div>';
     el.addEventListener('click', () => { guiSel = i; guiActivate(); });
     el.addEventListener('mouseenter', () => {
-      if (guiSel !== i) { guiSel = i; renderGUI(); }
+      guiSel = i;
+      guiIconsEl.querySelectorAll('.gui-icon').forEach((n, k) => {
+        n.classList.toggle('selected', k === i);
+      });
     });
     guiIconsEl.appendChild(el);
   });
@@ -1122,10 +1111,7 @@ function guiNavigate(dx, dy) {
   else if (dx === 1) idx = Math.min(n - 1, idx + 1);
   else if (dy === -1) idx = Math.max(0, idx - cols);
   else if (dy === 1) { const nx = idx + cols; if (nx < n) idx = nx; }
-  if (idx !== guiSel) {
-    guiSel = idx;
-    renderGUI();
-  }
+  if (idx !== guiSel) { guiSel = idx; renderGUI(); }
 }
 
 function guiActivate() {
@@ -1165,7 +1151,7 @@ function guiActivate() {
 function cmdGUI() { openGUI(); }
 
 /* =========================================================
-   Explorer（全屏，蓝底灰条）
+   Explorer
    ========================================================= */
 let expCwd = [];
 let expSel = 0;
@@ -1200,8 +1186,13 @@ function renderExplorer() {
               : item.type === 'parent' ? '[UP] '
               :                          '[FILE]';
     el.innerHTML = '<span class="tag">' + tag + '</span>' + escapeHTML(item.name);
-    el.addEventListener('click', () => { expSel = i; renderExplorer(); });
-    el.addEventListener('dblclick', () => { expSel = i; expEnter(); });
+    el.addEventListener('click', () => { expSel = i; expEnter(); });
+    el.addEventListener('mouseenter', () => {
+      expSel = i;
+      expList.querySelectorAll('.exp-item').forEach((n, k) => {
+        n.classList.toggle('selected', k === i);
+      });
+    });
     expList.appendChild(el);
   });
 }
@@ -1239,7 +1230,6 @@ function expEnter() {
     expSel = 0;
     renderExplorer();
   } else {
-    /* 打开 Notepad 编辑 */
     closeExplorer();
     openEditorFor(fullPath);
   }
@@ -1324,6 +1314,19 @@ function expNew() {
   renderExplorer();
 }
 
+function expNewFolder() {
+  const parent = getNode(expCwd);
+  if (!parent || parent.type !== 'dir') return;
+  let n = 1, name;
+  do { name = 'NEWFOLDER' + n; n++; } while (parent.children[name]);
+  parent.children[name] = { type:'dir', children:{} };
+  saveDisk();
+  const items = getExplorerItems();
+  const idx = items.findIndex(it => it.name === name);
+  if (idx >= 0) expSel = idx;
+  renderExplorer();
+}
+
 function expDelete() {
   const items = getExplorerItems();
   const item = items[expSel];
@@ -1359,14 +1362,15 @@ explorerButtons.addEventListener('click', e => {
       renderExplorer();
       break;
     }
-    case 'open':   expEnter();   break;
-    case 'rename': expRename();  break;
-    case 'copy':   expCopy();    break;
-    case 'cut':    expCut();     break;
-    case 'paste':  expPaste();   break;
-    case 'new':    expNew();     break;
-    case 'delete': expDelete();  break;
-    case 'close':  closeExplorer(); break;
+    case 'open':      expEnter();     break;
+    case 'rename':    expRename();    break;
+    case 'copy':      expCopy();      break;
+    case 'cut':       expCut();       break;
+    case 'paste':     expPaste();     break;
+    case 'new':       expNew();       break;
+    case 'newfolder': expNewFolder(); break;
+    case 'delete':    expDelete();    break;
+    case 'close':     closeExplorer(); break;
   }
 });
 
@@ -1390,6 +1394,7 @@ document.addEventListener('keydown', e => {
     else if (k === 'X' && !e.ctrlKey && !e.altKey && !e.metaKey) expCut();
     else if (k === 'V' && !e.ctrlKey && !e.altKey && !e.metaKey) expPaste();
     else if (k === 'N' && !e.ctrlKey && !e.altKey && !e.metaKey) expNew();
+    else if (k === 'F' && !e.ctrlKey && !e.altKey && !e.metaKey) expNewFolder();
     else handled = false;
   }
   if (handled) { e.preventDefault(); e.stopPropagation(); }
