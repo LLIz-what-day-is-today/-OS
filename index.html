@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MS-DOS Command Prompt</title>
+<title>-OS Command Prompt</title>
 <style>
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; cursor: none; }
@@ -14,115 +14,62 @@
     overflow: hidden; -webkit-font-smoothing: none;
   }
 
-  /* ---------- 顶部按钮栏包装 ---------- */
-  #topWrap {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 30;
-    pointer-events: none;
-  }
-  #hoverTrigger {
-    height: 8px;
-    pointer-events: auto;
-  }
-  body.touch #hoverTrigger { display: none; }
+  /* ============ 顶部按键栏（仅触摸设备显示） ============ */
+  #topWrap { position: fixed; top: 0; left: 0; right: 0; z-index: 30; pointer-events: none; }
 
-  /* 移除了 border-bottom —— 不再有横线 */
   #mobileKeys {
-    display: flex;
+    display: none;                /* 默认不显示 */
     gap: 3px;
     padding: calc(6px + env(safe-area-inset-top)) 6px 6px;
     background: #0a0a0a;
     pointer-events: auto;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: transform 0.25s ease;
+    user-select: none; -webkit-user-select: none;
   }
-  body.desktop #mobileKeys {
-    transform: translateY(-100%);
-  }
-  body.desktop #topWrap:hover #mobileKeys {
-    transform: translateY(0);
-  }
+  body.touch #mobileKeys { display: flex; }  /* 只有触摸设备显示 */
+  body.desktop #mobileKeys { display: none; } /* 电脑彻底不显示 */
 
   #mobileKeys button {
-    flex: 1 1 0;
-    min-width: 0;
-    background: #1a1a1a;
-    border: 1px solid #444;
-    color: #c0c0c0;
-    font: inherit;
-    font-weight: bold;
-    font-size: 13px;
-    padding: 10px 0;
-    border-radius: 4px;
+    flex: 1 1 0; min-width: 0;
+    background: #1a1a1a; border: 1px solid #444; color: #c0c0c0;
+    font: inherit; font-weight: bold; font-size: 13px;
+    padding: 10px 0; border-radius: 4px;
     cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: none; -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    white-space: nowrap;
+    touch-action: manipulation; white-space: nowrap;
   }
-  #mobileKeys button.active {
-    background: #0000aa;
-    border-color: #5555ff;
-    color: #ffffff;
-  }
+  #mobileKeys button.active { background: #0000aa; border-color: #5555ff; color: #fff; }
   #mobileKeys button:active { background: #222; }
 
-  /* 键盘面板 —— 也去掉边框线 */
   #keyboardPanel {
-    background: #0a0a0a;
-    padding: 0 4px;
+    background: #0a0a0a; padding: 0 4px;
     pointer-events: auto;
-    max-height: 0;
-    overflow: hidden;
+    max-height: 0; overflow: hidden;
     transition: max-height 0.25s ease, padding 0.25s ease;
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: none; -webkit-user-select: none;
   }
-  #keyboardPanel.visible {
-    max-height: 300px;
-    padding: 6px 4px 8px;
-  }
+  #keyboardPanel.visible { max-height: 300px; padding: 6px 4px 8px; }
 
-  .kb-row {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 3px;
-    justify-content: center;
-  }
+  .kb-row { display: flex; gap: 3px; margin-bottom: 3px; justify-content: center; }
   .kb-row:last-child { margin-bottom: 0; }
   .kb-row[data-row="q2"] { padding: 0 4%; }
   .kb-row[data-row="q3"] { padding: 0 10%; }
 
   .kb-key {
-    flex: 1 1 0;
-    min-width: 0;
-    background: #1a1a1a;
-    border: 1px solid #444;
-    color: #c0c0c0;
-    font: inherit;
-    font-weight: bold;
-    font-size: 14px;
-    padding: 9px 0;
-    border-radius: 4px;
+    flex: 1 1 0; min-width: 0;
+    background: #1a1a1a; border: 1px solid #444; color: #c0c0c0;
+    font: inherit; font-weight: bold; font-size: 14px;
+    padding: 9px 0; border-radius: 4px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    white-space: nowrap;
-    text-align: center;
+    user-select: none; -webkit-user-select: none;
+    white-space: nowrap; text-align: center;
     transition: background 0.1s ease, border-color 0.1s ease;
   }
-  .kb-key.active {
-    background: #0000aa;
-    border-color: #5555ff;
-    color: #fff;
-  }
+  .kb-key.active { background: #0000aa; border-color: #5555ff; color: #fff; }
 
-  /* ---------- 屏幕 ---------- */
+  /* ============ 命令行屏幕 ============ */
   #screen {
     height: 100vh; overflow-y: auto;
     padding: 8px 12px 60px 12px;
@@ -130,12 +77,8 @@
     scrollbar-width: thin; scrollbar-color: #555 #000;
     transition: padding-top 0.25s ease;
   }
-  body.touch #screen {
-    padding-top: calc(60px + env(safe-area-inset-top));
-  }
-  body.touch.kb-open #screen {
-    padding-top: calc(60px + 220px + env(safe-area-inset-top));
-  }
+  body.touch #screen { padding-top: calc(60px + env(safe-area-inset-top)); }
+  body.touch.kb-open #screen { padding-top: calc(60px + 220px + env(safe-area-inset-top)); }
   #screen::-webkit-scrollbar { width: 12px; }
   #screen::-webkit-scrollbar-track { background: #000; }
   #screen::-webkit-scrollbar-thumb { background: #444; }
@@ -163,7 +106,7 @@
     pointer-events: none;
   }
 
-  /* ---------- EDIT 覆盖层 ---------- */
+  /* ============ 编辑器 ============ */
   #editorOverlay {
     position: fixed; inset: 0; background: #000;
     display: flex; flex-direction: column;
@@ -171,12 +114,8 @@
     z-index: 10; cursor: default;
     transition: padding-top 0.25s ease;
   }
-  body.touch #editorOverlay {
-    padding-top: calc(60px + env(safe-area-inset-top));
-  }
-  body.touch.kb-open #editorOverlay {
-    padding-top: calc(60px + 220px + env(safe-area-inset-top));
-  }
+  body.touch #editorOverlay { padding-top: calc(60px + env(safe-area-inset-top)); }
+  body.touch.kb-open #editorOverlay { padding-top: calc(60px + 220px + env(safe-area-inset-top)); }
   #editorOverlay.hidden { display: none; }
   #editorTitle { color: #fff; background: #0000aa; padding: 2px 8px; white-space: pre; }
   #editorWrap { position: relative; flex: 1; min-height: 0; }
@@ -191,6 +130,159 @@
   #editorArea::-webkit-scrollbar-track { background: #000; }
   #editorArea::-webkit-scrollbar-thumb { background: #444; }
   #editorHint { color: #808080; padding-top: 4px; }
+
+  /* ============ 全屏应用（GUI / Explorer）通用 ============ */
+  .fullscreen-app {
+    position: fixed; inset: 0;
+    background: #0000aa;                 /* 蓝色底 */
+    display: flex; flex-direction: column;
+    z-index: 40;                          /* 高于顶部按键栏 */
+    cursor: default;
+  }
+  .fullscreen-app.hidden { display: none; }
+
+  .app-title {
+    background: #c0c0c0;                 /* 顶部灰色条 */
+    color: #000000;
+    padding: 5px 10px;
+    padding-top: calc(5px + env(safe-area-inset-top));
+    font-weight: bold;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+  }
+
+  .app-body {
+    flex: 1 1 auto;
+    overflow: auto;
+    color: #ffffff;
+    padding: 10px;
+  }
+  .app-body::-webkit-scrollbar { width: 12px; height: 12px; }
+  .app-body::-webkit-scrollbar-track { background: #000066; }
+  .app-body::-webkit-scrollbar-thumb { background: #5555aa; }
+
+  .app-status {
+    background: #c0c0c0;                 /* 底部灰色条 */
+    color: #000000;
+    padding: 5px 10px;
+    padding-bottom: calc(5px + env(safe-area-inset-bottom));
+    font-weight: bold;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+  }
+  .app-status.with-buttons {
+    padding: 4px 6px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+    white-space: normal;
+    overflow: visible;
+  }
+
+  /* ---------- GUI 图标网格 ---------- */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 12px;
+    align-content: start;
+  }
+
+  .gui-icon {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 2px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 88px;
+  }
+  .gui-icon.selected {
+    background: #000088;
+    border-color: #ffffff;
+    outline: 1px dotted #ffffff;
+    outline-offset: -4px;
+  }
+  .gui-icon .icon-img {
+    font-size: 30px;
+    line-height: 1;
+    margin-bottom: 6px;
+    font-family: "SVGAFix", "Consolas", "Courier New", monospace;
+  }
+  .gui-icon .icon-title {
+    font-size: 13px;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.2;
+  }
+
+  /* ---------- Explorer 列表 ---------- */
+  .exp-list {
+    padding: 0;
+    margin: 0;
+  }
+  .exp-item {
+    padding: 6px 12px;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: pre;
+    font-family: "SVGAFix", "Consolas", "Courier New", monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 14px;
+  }
+  .exp-item.selected {
+    background: #000088;
+    outline: 1px dotted #ffffff;
+    outline-offset: -2px;
+  }
+  .exp-item .tag {
+    color: #ffff55;
+    margin-right: 8px;
+  }
+  .exp-item.dir .tag { color: #55ffff; }
+  .exp-item.parent .tag { color: #55ff55; }
+
+  /* ---------- Explorer 底部按钮 ---------- */
+  .exp-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .exp-buttons button {
+    flex: 1 1 auto;
+    min-width: 60px;
+    background: #c0c0c0;
+    border: 1px solid #808080;
+    border-top-color: #ffffff;
+    border-left-color: #ffffff;
+    color: #000000;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 6px 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .exp-buttons button:active {
+    border-top-color: #808080;
+    border-left-color: #808080;
+    background: #a0a0a0;
+  }
 </style>
 </head>
 <body>
@@ -217,8 +309,38 @@
   <div id="editorHint">Ctrl+S = Save &amp; Exit&nbsp;&nbsp;|&nbsp;&nbsp;Esc = Cancel</div>
 </div>
 
+<!-- GUI (fullscreen) -->
+<div id="guiOverlay" class="fullscreen-app hidden">
+  <div class="app-title" id="guiTitle">-OS GUI</div>
+  <div class="app-body">
+    <div class="icon-grid" id="guiIcons"></div>
+  </div>
+  <div class="app-status" id="guiStatus">↑↓←→ Navigate   Enter Open   Esc Close</div>
+</div>
+
+<!-- Explorer (fullscreen) -->
+<div id="explorerOverlay" class="fullscreen-app hidden">
+  <div class="app-title" id="expTitle">-OS Explorer</div>
+  <div class="app-body">
+    <div class="exp-list" id="expList"></div>
+  </div>
+  <div class="app-status with-buttons">
+    <div class="exp-buttons" id="explorerButtons">
+      <button type="button" data-act="up">Up</button>
+      <button type="button" data-act="down">Down</button>
+      <button type="button" data-act="open">Open</button>
+      <button type="button" data-act="rename">Rename</button>
+      <button type="button" data-act="copy">Copy</button>
+      <button type="button" data-act="cut">Cut</button>
+      <button type="button" data-act="paste">Paste</button>
+      <button type="button" data-act="new">New</button>
+      <button type="button" data-act="delete">Del</button>
+      <button type="button" data-act="close">Esc</button>
+    </div>
+  </div>
+</div>
+
 <div id="topWrap">
-  <div id="hoverTrigger"></div>
   <div id="mobileKeys">
     <button type="button" data-mod="ctrl">Ctrl</button>
     <button type="button" data-mod="alt">Alt</button>
@@ -229,6 +351,7 @@
     <button type="button" data-key="right">→</button>
     <button type="button" data-key="up">↑</button>
     <button type="button" data-key="down">↓</button>
+    <button type="button" data-key="enter">↵</button>
   </div>
   <div id="keyboardPanel"></div>
 </div>
@@ -249,14 +372,25 @@ const editorMeasure = document.getElementById('editorMeasure');
 const mobileKeysEl  = document.getElementById('mobileKeys');
 const keyboardPanel = document.getElementById('keyboardPanel');
 
-/* ========== 设备判定 ========== */
+const guiOverlay   = document.getElementById('guiOverlay');
+const guiIconsEl   = document.getElementById('guiIcons');
+const guiTitleEl   = document.getElementById('guiTitle');
+const guiStatusEl  = document.getElementById('guiStatus');
+
+const explorerOverlay = document.getElementById('explorerOverlay');
+const expTitle        = document.getElementById('expTitle');
+const expList         = document.getElementById('expList');
+const explorerButtons = document.getElementById('explorerButtons');
+
+/* ========== 设备 ========== */
 const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 if (isTouch) document.body.classList.add('touch');
 else         document.body.classList.add('desktop');
 
-/* ========== 英文字符串 ========== */
+/* ========== 字符串 ========== */
 const EN = {
-  version:'MS-DOS Version 6.22', badCmd:'Bad command or file name - ',
+  version:'-OS Version 1.0',
+  badCmd:'Bad command or file name - ',
   fileNotFound:'File not found', invalidPath:'Invalid path', invalidDir:'Invalid directory',
   accessDenied:'Access denied', dirExists:'Directory already exists',
   dirNotEmpty:'Directory not empty', fileExists:'File already exists',
@@ -270,12 +404,14 @@ const EN = {
   factoryReset:'Factory settings restored.',
   exit1:'It is now safe to turn off your computer.',
   exit2:'(Refresh this page to restart)',
-  volumeIn:' Volume in drive C is MSDOS',
+  volumeIn:' Volume in drive C is -OS',
   volumeSerial:' Volume Serial Number is 1A2B-3C4D',
   dirOf:' Directory of ', fileCount:'File(s)', dirCount:'Dir(s)',
   bytesFree:'bytes free', byteUnit:'bytes',
   currentDate:'Current date is ', currentTime:'Current time is ',
   usagePy:'Usage: PY <filename.py>',
+  usageStart:'Usage: START <filename> <NOTEPAD|PY|PYTHON>',
+  startBadApp:'Unknown application - ',
   chooseFolder:'Please choose a folder in the dialog ...',
   savedAll:'The whole virtual disk has been saved to the selected folder.',
   cancelled:'Cancelled.', saveFailed:'Save failed: ',
@@ -283,19 +419,17 @@ const EN = {
   filesWord:' file(s) ...', allDownloads:'All downloads complete.',
   selectFiles:'Select the file(s) to load into the virtual disk ...', loaded:'Loaded ',
   treeHeader1:'Directory PATH listing', treeHeader2:'Volume Serial Number is 1A2B-3C4D',
-  helpTitle:'MS-DOS Command Interpreter 6.22 — available commands:',
+  helpTitle:'-OS Command Interpreter 1.0 — available commands:',
   langLoading:'Translating via MyMemory API ...',
   langSet:'Language set to ',
   langUsage:'Usage: LANG <code>    (e.g. LANG ja, LANG fr, LANG zh-CN, LANG de)',
   langHelp:'Supported codes: en zh-CN zh-TW ja ko fr de es pt it ru ar hi th vi id tr pl nl sv da fi no cs el he uk hu ro',
   langFail:'Translation failed: ',
   importConfirm:'Are you sure you want to import the disk? Importing the disk will delete the current information.',
-  importDone:'Disk imported successfully.',
-  importBad:'Invalid disk file.',
+  importDone:'Disk imported successfully.', importBad:'Invalid disk file.',
   importPick:'Select a MSDOS_DISK.json file to import ...',
   importCancelled:'Import cancelled.',
-  exportDone:'Disk exported successfully.',
-  exportName:'MSDOS_DISK.json',
+  exportDone:'Disk exported successfully.', exportName:'MSDOS_DISK.json',
   helpCmds:[
     '  HELP             Show this help screen',
     '  DIR  [path]      List files and subdirectories',
@@ -308,6 +442,9 @@ const EN = {
     '  REN  old new     Rename a file',
     '  EDIT filename    Edit a text file (Ctrl+S saves)',
     '  ECHO text >file  Display text, or write text into a file',
+    '  START file app   Open a file with an application',
+    '  GUI              Open the Graphical User Interface',
+    '  EXPLORER         Open the file manager',
     '  TREE             Show the directory structure as a tree',
     '  CLS              Clear the screen',
     '  VER              Show the version',
@@ -342,7 +479,6 @@ function t(k) { return EN[k] !== undefined ? EN[k] : k; }
 /* ========== 翻译 ========== */
 let targetLang = null;
 const trCache = new Map();
-
 async function translateText(text) {
   if (!targetLang || !text) return text;
   if (trCache.has(text)) return trCache.get(text);
@@ -356,7 +492,6 @@ async function translateText(text) {
     return tr;
   } catch (e) { return text; }
 }
-
 async function setLanguage(code) {
   if (!code) { print(t('langUsage')); print(t('langHelp')); return; }
   code = String(code).trim();
@@ -366,11 +501,9 @@ async function setLanguage(code) {
   else if (low === 'jp') code = 'ja';
   else if (low === 'kr') code = 'ko';
   else if (low === 'se') code = 'sv';
-
   targetLang = code;
   document.documentElement.lang = code;
   try { localStorage.setItem('msdos-lang', code); } catch (e) {}
-
   print(t('langLoading'));
   const nodes = outputEl.querySelectorAll('[data-src]');
   for (const el of nodes) {
@@ -387,15 +520,15 @@ function defaultDisk() {
   return { name:'C:', type:'dir', children:{
     'DOS': { type:'dir', children:{} },
     'PY':  { type:'dir', children:{} },
-    'AUTOEXEC.BAT': { type:'file', content:
-      '@ECHO OFF\nPROMPT $P$G\nPATH C:\\DOS;C:\\PY\nSET TEMP=C:\\DOS\nECHO Welcome to MS-DOS 6.22\n' },
     'CONFIG.SYS': { type:'file', content:
       'DEVICE=HIMEM.SYS\nDOS=HIGH,UMB\nFILES=40\nBUFFERS=20\n' },
     'README.TXT': { type:'file', content:
-      'MS-DOS Command Prompt\n=====================\n\n' +
+      '-OS Command Prompt\n==================\n\n' +
       'Commands:\n  HELP / DIR / CD / MD / RD\n  TYPE / COPY / DEL / REN\n' +
-      '  EDIT <file>       edit a text file\n  PY <file.py>      run a Python script\n' +
-      '  LANG <code>       switch UI language\n  IMPORT / EXPORT   whole-disk backup as JSON\n' +
+      '  EDIT <file>         edit a text file\n  START <file> <app>  open a file with an application\n' +
+      '  GUI                 open the Graphical User Interface\n  EXPLORER            open the file manager\n' +
+      '  PY <file.py>        run a Python script\n' +
+      '  LANG <code>         switch UI language\n  IMPORT / EXPORT     whole-disk backup as JSON\n' +
       '  SAVE / SAVEALL / LOAD\n  FORMAT / RESET / EXIT\n' },
     'HELLO.PY': { type:'file', content:
       '# HELLO.PY - a tiny Python demo\nprint("Hello from Python!")\n' +
@@ -410,7 +543,7 @@ function loadDisk() {
   } catch(e){}
 }
 
-/* ========== 路径工具 ========== */
+/* ========== 路径 ========== */
 function parsePath(str, base) {
   str = String(str==null?'':str).trim();
   let parts;
@@ -473,6 +606,11 @@ function splitRedirect(line) {
     if (!q && ch === '>') return { cmd: line.slice(0,i).trim(), out: line.slice(i+1).trim() };
   }
   return { cmd: line.trim(), out: null };
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
 }
 
 /* ========== Y/N 确认 ========== */
@@ -549,18 +687,14 @@ async function getPyodide() {
   })();
   return pyodidePromise;
 }
-async function cmdPy(args) {
-  if (!args.length) { print(t('usagePy')); return; }
-  const fileName = args[0];
-  const p = parsePath(fileName, cwd);
-  const node = getNode(p);
-  if (!node) { print(t('fileNotFound') + ' - ' + fileName); return; }
-  if (node.type === 'dir') { print(t('accessDenied') + ' - ' + fileName); return; }
+async function runPythonFile(path) {
+  const node = getNode(path);
+  if (!node || node.type !== 'file') { print(t('fileNotFound')); return; }
   let py;
   try { py = await getPyodide(); } catch (e) { print('Error: ' + e.message); return; }
   py.setStdout({ batched: s => printRaw(s) });
   py.setStderr({ batched: s => printRaw(s) });
-  py.globals.set('__msdos_argv__', py.toPy([fileName]));
+  py.globals.set('__msdos_argv__', py.toPy([path[path.length-1]]));
   try {
     await py.runPythonAsync('import sys\nsys.argv = list(__msdos_argv__)\n' + node.content);
   } catch (err) {
@@ -570,6 +704,10 @@ async function cmdPy(args) {
     try { py.setStdout({}); py.setStderr({}); } catch(e){}
   }
 }
+async function cmdPy(args) {
+  if (!args.length) { print(t('usagePy')); return; }
+  await runPythonFile(parsePath(args[0], cwd));
+}
 
 /* ========== 命令 ========== */
 function cmdHelp() {
@@ -578,6 +716,19 @@ function cmdHelp() {
   EN.helpCmds.forEach(print);
 }
 function cmdLang(args) { setLanguage(args[0]); }
+
+function cmdStart(args) {
+  if (args.length < 2) { print(t('usageStart')); return; }
+  const fileArg = args[0];
+  const appArg  = args[1].toUpperCase();
+  const p = parsePath(fileArg, cwd);
+  const node = getNode(p);
+  if (!node) { print(t('fileNotFound') + ' - ' + fileArg); return; }
+  if (node.type === 'dir') { print(t('accessDenied') + ' - ' + fileArg); return; }
+  if (appArg === 'NOTEPAD') { cmdEdit([fileArg]); return; }
+  if (appArg === 'PY' || appArg === 'PYTHON') { runPythonFile(p); return; }
+  print(t('startBadApp') + args[1]);
+}
 
 function cmdDir(args) {
   const target = args[0] || '';
@@ -710,12 +861,11 @@ function cmdTree(args) {
   })(node, '');
 }
 
-/* ---- IMPORT / EXPORT ---- */
+/* ========== IMPORT / EXPORT ========== */
 function cmdImport() {
   confirmYesNo(t('importConfirm'), () => {
     const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = '.json,application/json';
+    inp.type = 'file'; inp.accept = '.json,application/json';
     inp.onchange = async () => {
       const f = inp.files && inp.files[0];
       if (!f) return;
@@ -741,9 +891,8 @@ async function cmdExport() {
   print(ok ? t('exportDone') : t('cancelled'));
 }
 
-/* ---- EDIT ---- */
+/* ========== EDIT ========== */
 let editingPath = null;
-
 function saveEditorFile() {
   if (!editingPath) return false;
   const parent = getParent(editingPath);
@@ -756,14 +905,13 @@ function saveEditorFile() {
   }
   return false;
 }
-
 function cmdEdit(args) {
   if (!args.length) { print(t('missingParam')); return; }
   const p = parsePath(args[0], cwd);
   const node = getNode(p);
   if (node && node.type === 'dir') { print(t('accessDenied')); return; }
   editingPath = p;
-  editorTitle.textContent = '  EDIT  ' + pathString(p);
+  editorTitle.textContent = '  NOTEPAD  ' + pathString(p);
   editorArea.value = node ? node.content : '';
   editorOverlay.classList.remove('hidden');
   editorArea.focus();
@@ -777,8 +925,20 @@ function closeEditor() {
   editorCursor.style.visibility = 'hidden';
   inputEl.focus(); refreshCmdCursor();
 }
+function openEditorFor(path) {
+  const node = getNode(path);
+  if (!node || node.type !== 'file') { print(t('fileNotFound')); return; }
+  editingPath = path;
+  editorTitle.textContent = '  NOTEPAD  ' + pathString(path);
+  editorArea.value = node.content;
+  editorOverlay.classList.remove('hidden');
+  editorArea.focus();
+  editorArea.selectionStart = editorArea.selectionEnd = 0;
+  editorArea.scrollTop = 0; editorArea.scrollLeft = 0;
+  refreshEditorCursor();
+}
 
-/* ---- 真实电脑文件交换 ---- */
+/* ========== 真实电脑文件交换 ========== */
 async function saveFileToRealPC(filename, content) {
   const blob = new Blob([content], { type:'text/plain;charset=utf-8' });
   if (window.showSaveFilePicker) {
@@ -886,12 +1046,15 @@ const COMMANDS = {
   ECHO: cmdEcho, CLS: cmdCls, VER: cmdVer,
   DATE: cmdDate, TIME: cmdTime, TREE: cmdTree,
   EDIT: cmdEdit,
+  START: cmdStart,
   PY: cmdPy, PYTHON: cmdPy,
   LANG: cmdLang, LANGUAGE: cmdLang,
   IMPORT: cmdImport, IMPORTDATA: cmdImport,
   EXPORT: cmdExport,
   SAVE: cmdSave, SAVEALL: cmdSaveAll, LOAD: cmdLoad,
-  FORMAT: cmdFormat, RESET: cmdReset, EXIT: cmdExit
+  FORMAT: cmdFormat, RESET: cmdReset, EXIT: cmdExit,
+  GUI: cmdGUI,
+  EXPLORER: cmdExplorer
 };
 
 async function runCommand(line) {
@@ -906,7 +1069,334 @@ async function runCommand(line) {
 }
 
 /* =========================================================
-   键盘面板：构建
+   GUI（全屏，蓝底灰条）
+   ========================================================= */
+let guiSel = 0;
+
+const GUI_ICONS = [
+  { id:'explorer', title:'Explorer', glyph:'▣' },
+  { id:'notepad',  title:'Notepad',  glyph:'▤' },
+  { id:'python',   title:'Python',   glyph:'Py' },
+  { id:'about',    title:'About',    glyph:'?' },
+  { id:'exit',     title:'Exit',     glyph:'X' }
+];
+
+function getGUICols() {
+  return window.innerWidth < 500 ? 2 : 3;
+}
+
+function renderGUI() {
+  guiIconsEl.innerHTML = '';
+  GUI_ICONS.forEach((icon, i) => {
+    const el = document.createElement('div');
+    el.className = 'gui-icon' + (i === guiSel ? ' selected' : '');
+    el.innerHTML =
+      '<div class="icon-img">' + icon.glyph + '</div>' +
+      '<div class="icon-title">' + escapeHTML(icon.title) + '</div>';
+    el.addEventListener('click', () => { guiSel = i; guiActivate(); });
+    el.addEventListener('mouseenter', () => {
+      if (guiSel !== i) { guiSel = i; renderGUI(); }
+    });
+    guiIconsEl.appendChild(el);
+  });
+}
+
+function openGUI() {
+  if (!explorerOverlay.classList.contains('hidden')) closeExplorer();
+  guiSel = 0;
+  renderGUI();
+  guiOverlay.classList.remove('hidden');
+}
+
+function closeGUI() {
+  guiOverlay.classList.add('hidden');
+  inputEl.focus();
+  refreshCmdCursor();
+}
+
+function guiNavigate(dx, dy) {
+  const cols = getGUICols();
+  const n = GUI_ICONS.length;
+  let idx = guiSel;
+  if (dx === -1) idx = Math.max(0, idx - 1);
+  else if (dx === 1) idx = Math.min(n - 1, idx + 1);
+  else if (dy === -1) idx = Math.max(0, idx - cols);
+  else if (dy === 1) { const nx = idx + cols; if (nx < n) idx = nx; }
+  if (idx !== guiSel) {
+    guiSel = idx;
+    renderGUI();
+  }
+}
+
+function guiActivate() {
+  const icon = GUI_ICONS[guiSel];
+  if (!icon) return;
+  if (icon.id === 'exit') { closeGUI(); return; }
+  if (icon.id === 'notepad') {
+    closeGUI();
+    cmdEdit(['README.TXT']);
+    return;
+  }
+  if (icon.id === 'explorer') {
+    closeGUI();
+    cmdExplorer();
+    return;
+  }
+  if (icon.id === 'python') {
+    closeGUI();
+    print('');
+    print('Python is available from the command line:');
+    print('  PY <file.py>');
+    print('  START <file> PY');
+    print('');
+    return;
+  }
+  if (icon.id === 'about') {
+    closeGUI();
+    print('');
+    print('-OS Version 1.0');
+    print('A text-mode graphical user interface running in your browser.');
+    print('Type HELP at the prompt for a list of commands.');
+    print('');
+    return;
+  }
+}
+
+function cmdGUI() { openGUI(); }
+
+/* =========================================================
+   Explorer（全屏，蓝底灰条）
+   ========================================================= */
+let expCwd = [];
+let expSel = 0;
+let expClipboard = null;
+
+function getExplorerItems() {
+  const node = getNode(expCwd);
+  if (!node || node.type !== 'dir') return [];
+  const items = [];
+  if (expCwd.length > 0) items.push({ name: '..', type: 'parent' });
+  const keys = Object.keys(node.children).sort();
+  for (const k of keys) items.push({ name: k, type: node.children[k].type });
+  return items;
+}
+
+function renderExplorer() {
+  expTitle.textContent = '-OS Explorer - ' + pathString(expCwd);
+
+  const items = getExplorerItems();
+  if (expSel >= items.length) expSel = Math.max(0, items.length - 1);
+  if (expSel < 0) expSel = 0;
+
+  expList.innerHTML = '';
+  items.forEach((item, i) => {
+    const el = document.createElement('div');
+    let cls = 'exp-item';
+    if (item.type === 'dir')    cls += ' dir';
+    if (item.type === 'parent') cls += ' parent';
+    if (i === expSel)           cls += ' selected';
+    el.className = cls;
+    const tag = item.type === 'dir'    ? '[DIR]'
+              : item.type === 'parent' ? '[UP] '
+              :                          '[FILE]';
+    el.innerHTML = '<span class="tag">' + tag + '</span>' + escapeHTML(item.name);
+    el.addEventListener('click', () => { expSel = i; renderExplorer(); });
+    el.addEventListener('dblclick', () => { expSel = i; expEnter(); });
+    expList.appendChild(el);
+  });
+}
+
+function openExplorer() {
+  if (!guiOverlay.classList.contains('hidden')) closeGUI();
+  expCwd = [...cwd];
+  expSel = 0;
+  expClipboard = null;
+  renderExplorer();
+  explorerOverlay.classList.remove('hidden');
+}
+
+function closeExplorer() {
+  explorerOverlay.classList.add('hidden');
+  inputEl.focus();
+  refreshCmdCursor();
+}
+
+function expEnter() {
+  const items = getExplorerItems();
+  const item = items[expSel];
+  if (!item) return;
+  if (item.type === 'parent') {
+    expCwd.pop();
+    expSel = 0;
+    renderExplorer();
+    return;
+  }
+  const fullPath = [...expCwd, item.name];
+  const node = getNode(fullPath);
+  if (!node) return;
+  if (node.type === 'dir') {
+    expCwd = fullPath;
+    expSel = 0;
+    renderExplorer();
+  } else {
+    /* 打开 Notepad 编辑 */
+    closeExplorer();
+    openEditorFor(fullPath);
+  }
+}
+
+function expRename() {
+  const items = getExplorerItems();
+  const item = items[expSel];
+  if (!item || item.type === 'parent') return;
+
+  const newName = window.prompt('Rename "' + item.name + '" to:', item.name);
+  if (newName === null) return;
+  const clean = newName.trim().replace(/[\\\/:*?"<>|]/g, '').toUpperCase();
+  if (!clean || clean === item.name) return;
+
+  const parent = getNode(expCwd);
+  if (!parent || parent.type !== 'dir') return;
+  if (parent.children[clean]) { print(t('fileExists')); return; }
+
+  parent.children[clean] = parent.children[item.name];
+  delete parent.children[item.name];
+  saveDisk();
+  renderExplorer();
+}
+
+function expCopy() {
+  const items = getExplorerItems();
+  const item = items[expSel];
+  if (!item || item.type === 'parent') return;
+  expClipboard = { mode:'copy', name: item.name, path: [...expCwd, item.name] };
+  renderExplorer();
+}
+
+function expCut() {
+  const items = getExplorerItems();
+  const item = items[expSel];
+  if (!item || item.type === 'parent') return;
+  expClipboard = { mode:'cut', name: item.name, path: [...expCwd, item.name] };
+  renderExplorer();
+}
+
+function expPaste() {
+  if (!expClipboard) return;
+  const parent = getNode(expCwd);
+  if (!parent || parent.type !== 'dir') return;
+
+  const src = getNode(expClipboard.path);
+  if (!src) { expClipboard = null; renderExplorer(); return; }
+
+  let targetName = expClipboard.name;
+  if (parent.children[targetName]) {
+    let base = expClipboard.name, ext = '';
+    const dot = base.lastIndexOf('.');
+    if (dot > 0) { ext = base.slice(dot); base = base.slice(0, dot); }
+    let n = 1;
+    while (parent.children[base + n + ext]) n++;
+    targetName = base + n + ext;
+  }
+
+  if (expClipboard.mode === 'copy') {
+    parent.children[targetName] = JSON.parse(JSON.stringify(src));
+  } else {
+    parent.children[targetName] = src;
+    const srcParent = getParent(expClipboard.path);
+    if (srcParent) delete srcParent.children[expClipboard.name];
+    expClipboard = null;
+  }
+  saveDisk();
+  renderExplorer();
+}
+
+function expNew() {
+  const parent = getNode(expCwd);
+  if (!parent || parent.type !== 'dir') return;
+  let n = 1, name;
+  do { name = 'NEWFILE' + n; n++; } while (parent.children[name]);
+  parent.children[name] = { type:'file', content: '' };
+  saveDisk();
+  const items = getExplorerItems();
+  const idx = items.findIndex(it => it.name === name);
+  if (idx >= 0) expSel = idx;
+  renderExplorer();
+}
+
+function expDelete() {
+  const items = getExplorerItems();
+  const item = items[expSel];
+  if (!item || item.type === 'parent') return;
+  const parent = getNode(expCwd);
+  if (!parent || parent.type !== 'dir') return;
+  const node = parent.children[item.name];
+  if (!node) return;
+  if (node.type === 'dir' && Object.keys(node.children).length) {
+    print(t('dirNotEmpty'));
+    return;
+  }
+  if (!window.confirm('Delete "' + item.name + '"?')) return;
+  delete parent.children[item.name];
+  saveDisk();
+  const items2 = getExplorerItems();
+  if (expSel >= items2.length) expSel = Math.max(0, items2.length - 1);
+  renderExplorer();
+}
+
+function cmdExplorer() { openExplorer(); }
+
+/* ========== Explorer 底部按钮 ========== */
+explorerButtons.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  switch (act) {
+    case 'up':    expSel = Math.max(0, expSel - 1); renderExplorer(); break;
+    case 'down': {
+      const items = getExplorerItems();
+      expSel = Math.min(items.length - 1, expSel + 1);
+      renderExplorer();
+      break;
+    }
+    case 'open':   expEnter();   break;
+    case 'rename': expRename();  break;
+    case 'copy':   expCopy();    break;
+    case 'cut':    expCut();     break;
+    case 'paste':  expPaste();   break;
+    case 'new':    expNew();     break;
+    case 'delete': expDelete();  break;
+    case 'close':  closeExplorer(); break;
+  }
+});
+
+/* ========== Explorer 键盘 ========== */
+document.addEventListener('keydown', e => {
+  if (explorerOverlay.classList.contains('hidden')) return;
+  let handled = true;
+  if (e.key === 'Escape') closeExplorer();
+  else if (e.key === 'ArrowUp') { expSel = Math.max(0, expSel - 1); renderExplorer(); }
+  else if (e.key === 'ArrowDown') {
+    const items = getExplorerItems();
+    expSel = Math.min(items.length - 1, expSel + 1);
+    renderExplorer();
+  }
+  else if (e.key === 'Enter') expEnter();
+  else if (e.key === 'Delete' || e.key === 'Backspace') expDelete();
+  else {
+    const k = e.key.toUpperCase();
+    if (k === 'R' && !e.ctrlKey && !e.altKey && !e.metaKey)      expRename();
+    else if (k === 'C' && !e.ctrlKey && !e.altKey && !e.metaKey) expCopy();
+    else if (k === 'X' && !e.ctrlKey && !e.altKey && !e.metaKey) expCut();
+    else if (k === 'V' && !e.ctrlKey && !e.altKey && !e.metaKey) expPaste();
+    else if (k === 'N' && !e.ctrlKey && !e.altKey && !e.metaKey) expNew();
+    else handled = false;
+  }
+  if (handled) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+
+/* =========================================================
+   键盘面板
    ========================================================= */
 const KB_ROWS = [
   { row:'num', keys:['1','2','3','4','5','6','7','8','9','0'] },
@@ -915,7 +1405,6 @@ const KB_ROWS = [
   { row:'q3',  keys:['z','x','c','v','b','n','m'] },
   { row:'sym', keys:['`','-','=','[',']','\\',';',"'",',','.','/'] }
 ];
-
 (function buildKeyboard() {
   for (const r of KB_ROWS) {
     const rowEl = document.createElement('div');
@@ -933,9 +1422,7 @@ const KB_ROWS = [
   }
 })();
 
-/* =========================================================
-   修饰键 + 字符键 → 组合键
-   ========================================================= */
+/* ========== 组合键 ========== */
 const SHIFT_MAP = {
   '1':'!','2':'@','3':'#','4':'$','5':'%','6':'^','7':'&','8':'*','9':'(','0':')',
   '-':'_','=':'+','[':'{',']':'}','\\':'|',';':':',"'":'"',',':'<','.':'>','/':'?','`':'~'
@@ -945,13 +1432,9 @@ function triggerCombo(mod, key) {
   const isEditor = !editorOverlay.classList.contains('hidden');
   const el = isEditor ? editorArea : inputEl;
 
-  /* ---- Ctrl ---- */
   if (mod === 'ctrl') {
     const k = key.toLowerCase();
-    if (k === 's') {
-      if (isEditor) { saveEditorFile(); closeEditor(); }
-      return true;
-    }
+    if (k === 's') { if (isEditor) { saveEditorFile(); closeEditor(); } return true; }
     if (k === 'l') { outputEl.innerHTML = ''; return true; }
     if (k === 'c') {
       pendingConfirm = null;
@@ -960,38 +1443,27 @@ function triggerCombo(mod, key) {
       return true;
     }
     if (k === 'a') {
-      el.focus();
-      el.select();
+      el.focus(); el.select();
       if (isEditor) refreshEditorCursor(); else refreshCmdCursor();
       return true;
     }
     return false;
   }
-
-  /* ---- Alt ---- */
-  if (mod === 'alt') {
-    return false;
-  }
-
-  /* ---- Shift ---- */
+  if (mod === 'alt') return false;
   if (mod === 'shift') {
     let ch = key;
     if (/^[a-z]$/.test(key)) ch = key.toUpperCase();
     else if (SHIFT_MAP[key]) ch = SHIFT_MAP[key];
-
     const s = el.selectionStart, e = el.selectionEnd;
     el.value = el.value.slice(0, s) + ch + el.value.slice(e);
     el.selectionStart = el.selectionEnd = s + ch.length;
     if (isEditor) refreshEditorCursor(); else refreshCmdCursor();
     return true;
   }
-
   return false;
 }
 
-/* =========================================================
-   键盘面板：打开 / 关闭
-   ========================================================= */
+/* ========== 键盘面板开关 ========== */
 let activeMod = null;
 let kbActiveBtn = null;
 
@@ -1003,7 +1475,6 @@ function openKeyboard(mod) {
   keyboardPanel.classList.add('visible');
   document.body.classList.add('kb-open');
 }
-
 function closeKeyboard() {
   activeMod = null;
   kbActiveBtn = null;
@@ -1013,7 +1484,6 @@ function closeKeyboard() {
   document.body.classList.remove('kb-open');
 }
 
-/* 按键按下：高亮 */
 keyboardPanel.addEventListener('pointerdown', e => {
   const btn = e.target.closest ? e.target.closest('.kb-key') : null;
   if (!btn) return;
@@ -1023,12 +1493,9 @@ keyboardPanel.addEventListener('pointerdown', e => {
   btn.classList.add('active');
 });
 
-/* 手指 / 鼠标松开：触发组合键并关闭面板 */
 document.addEventListener('pointerup', e => {
   if (!kbActiveBtn) return;
-  const tgt = e.target;
-  const btn = (tgt && tgt.closest) ? tgt.closest('.kb-key') : null;
-
+  const btn = (e.target && e.target.closest) ? e.target.closest('.kb-key') : null;
   if (btn === kbActiveBtn) {
     const key = kbActiveBtn.dataset.key;
     const mod = activeMod;
@@ -1042,48 +1509,46 @@ document.addEventListener('pointerup', e => {
   }
 });
 
-/* 点击面板外区域：关闭面板 */
 document.addEventListener('pointerdown', e => {
   if (!keyboardPanel.classList.contains('visible')) return;
-  const tgt = e.target;
-  if (keyboardPanel.contains(tgt)) return;
-  if (mobileKeysEl.contains(tgt)) return;
+  if (keyboardPanel.contains(e.target)) return;
+  if (mobileKeysEl.contains(e.target)) return;
   closeKeyboard();
 }, true);
 
 /* =========================================================
-   屏幕按键栏交互
+   屏幕按键栏
    ========================================================= */
-const blocker = e => e.preventDefault();
-mobileKeysEl.addEventListener('mousedown', blocker);
-mobileKeysEl.addEventListener('touchstart', blocker, { passive: false });
-keyboardPanel.addEventListener('mousedown', blocker);
-keyboardPanel.addEventListener('touchstart', blocker, { passive: false });
+let mobileBtnPointer = null;
 
-/* 修饰键：按下就弹出键盘（响应更快） */
 mobileKeysEl.addEventListener('pointerdown', e => {
   const btn = e.target.closest('button');
-  if (!btn || !btn.dataset.mod) return;
+  if (!btn) return;
   e.preventDefault();
-  const m = btn.dataset.mod;
-  if (activeMod === m && keyboardPanel.classList.contains('visible')) {
-    closeKeyboard();
-  } else {
-    openKeyboard(m);
-  }
+  mobileBtnPointer = btn;
 });
 
-/* 其他按键：单击触发动作 */
-mobileKeysEl.addEventListener('click', e => {
+mobileKeysEl.addEventListener('pointerup', e => {
   const btn = e.target.closest('button');
-  if (!btn) return;
-  if (btn.dataset.mod) return;   /* 已在 pointerdown 处理 */
+  if (!btn || btn !== mobileBtnPointer) { mobileBtnPointer = null; return; }
+  mobileBtnPointer = null;
+
+  if (btn.dataset.mod) {
+    const m = btn.dataset.mod;
+    if (activeMod === m && keyboardPanel.classList.contains('visible')) closeKeyboard();
+    else openKeyboard(m);
+    return;
+  }
+
   const key = btn.dataset.key;
   if (key) handleMobileKey(key);
 });
 
+mobileKeysEl.addEventListener('pointercancel', () => { mobileBtnPointer = null; });
+mobileKeysEl.addEventListener('pointerleave', () => { mobileBtnPointer = null; });
+
 /* =========================================================
-   普通按键（Esc / Tab / 方向键）
+   功能键动作
    ========================================================= */
 function commandComplete() {
   const val = inputEl.value;
@@ -1105,8 +1570,31 @@ function commandComplete() {
 }
 
 function handleMobileKey(key) {
+  /* Explorer 优先 */
+  if (!explorerOverlay.classList.contains('hidden')) {
+    if (key === 'esc') closeExplorer();
+    else if (key === 'up') { expSel = Math.max(0, expSel - 1); renderExplorer(); }
+    else if (key === 'down') {
+      const items = getExplorerItems();
+      expSel = Math.min(items.length - 1, expSel + 1);
+      renderExplorer();
+    }
+    else if (key === 'enter' || key === 'tab') expEnter();
+    return;
+  }
+
+  /* GUI 次之 */
+  if (!guiOverlay.classList.contains('hidden')) {
+    if (key === 'esc') closeGUI();
+    else if (key === 'up') guiNavigate(0, -1);
+    else if (key === 'down') guiNavigate(0, 1);
+    else if (key === 'left') guiNavigate(-1, 0);
+    else if (key === 'right') guiNavigate(1, 0);
+    else if (key === 'tab' || key === 'enter') guiActivate();
+    return;
+  }
+
   const isEditor = !editorOverlay.classList.contains('hidden');
-  const el = isEditor ? editorArea : inputEl;
 
   if (key === 'esc') {
     closeKeyboard();
@@ -1115,15 +1603,28 @@ function handleMobileKey(key) {
     return;
   }
 
+  const el = isEditor ? editorArea : inputEl;
+
   if (key === 'tab') {
     if (isEditor) {
       const s = el.selectionStart, e = el.selectionEnd;
-      const v = el.value;
-      el.value = v.slice(0, s) + '\t' + v.slice(e);
+      el.value = el.value.slice(0, s) + '\t' + el.value.slice(e);
       el.selectionStart = el.selectionEnd = s + 1;
       refreshEditorCursor();
     } else {
       commandComplete();
+    }
+    return;
+  }
+
+  if (key === 'enter') {
+    if (isEditor) {
+      const s = el.selectionStart, e = el.selectionEnd;
+      el.value = el.value.slice(0, s) + '\n' + el.value.slice(e);
+      el.selectionStart = el.selectionEnd = s + 1;
+      refreshEditorCursor();
+    } else {
+      inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     }
     return;
   }
@@ -1173,8 +1674,22 @@ function handleMobileKey(key) {
 }
 
 /* =========================================================
-   键盘事件（物理键盘）
+   物理键盘
    ========================================================= */
+document.addEventListener('keydown', e => {
+  if (guiOverlay.classList.contains('hidden')) return;
+  let handled = true;
+  if (e.key === 'Escape') closeGUI();
+  else if (e.key === 'ArrowUp')    guiNavigate(0, -1);
+  else if (e.key === 'ArrowDown')  guiNavigate(0, 1);
+  else if (e.key === 'ArrowLeft')  guiNavigate(-1, 0);
+  else if (e.key === 'ArrowRight') guiNavigate(1, 0);
+  else if (e.key === 'Enter')      guiActivate();
+  else if (e.key === 'Tab')        guiActivate();
+  else handled = false;
+  if (handled) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+
 function handleModKeys(e, isEditor) {
   if (e.key === 'Escape') {
     e.preventDefault();
@@ -1194,10 +1709,7 @@ function handleModKeys(e, isEditor) {
   }
   return false;
 }
-
-editorArea.addEventListener('keydown', e => {
-  if (handleModKeys(e, true)) return;
-});
+editorArea.addEventListener('keydown', e => { if (handleModKeys(e, true)) return; });
 
 /* =========================================================
    输入处理
@@ -1205,6 +1717,8 @@ editorArea.addEventListener('keydown', e => {
 let history = [], histIdx = 0;
 
 inputEl.addEventListener('keydown', async e => {
+  if (!guiOverlay.classList.contains('hidden')) return;
+  if (!explorerOverlay.classList.contains('hidden')) return;
   if (handleModKeys(e, false)) return;
 
   if (e.key === 'Enter') {
@@ -1258,7 +1772,11 @@ document.addEventListener('selectionchange', () => {
   if (document.activeElement === inputEl) refreshCmdCursor();
   if (document.activeElement === editorArea) refreshEditorCursor();
 });
-window.addEventListener('resize', () => { refreshCmdCursor(); refreshEditorCursor(); });
+window.addEventListener('resize', () => {
+  refreshCmdCursor(); refreshEditorCursor();
+  if (!guiOverlay.classList.contains('hidden')) renderGUI();
+  if (!explorerOverlay.classList.contains('hidden')) renderExplorer();
+});
 ['input','keyup','keydown','click','select','focus','blur','mouseup','scroll','compositionend'].forEach(ev => {
   editorArea.addEventListener(ev, () => setTimeout(refreshEditorCursor, 0));
 });
