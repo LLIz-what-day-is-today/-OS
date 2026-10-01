@@ -19,8 +19,8 @@
     position: fixed;
     left: 0; right: 0; top: 0;
     display: flex;
-    gap: 4px;
-    padding: calc(6px + env(safe-area-inset-top)) 8px 6px;
+    gap: 3px;
+    padding: calc(6px + env(safe-area-inset-top)) 6px 6px;
     background: #0a0a0a;
     border-bottom: 1px solid #333;
     z-index: 30;
@@ -37,7 +37,7 @@
     color: #c0c0c0;
     font: inherit;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 13px;
     padding: 10px 0;
     border-radius: 4px;
     cursor: pointer;
@@ -54,7 +54,7 @@
   }
   #mobileKeys button:active { background: #222; }
 
-  /* ---------- Screen (top padding leaves room for the bar) ---------- */
+  /* ---------- Screen ---------- */
   #screen {
     height: 100vh; overflow-y: auto;
     padding: 8px 12px 60px 12px;
@@ -91,7 +91,7 @@
     pointer-events: none;
   }
 
-  /* ---------- EDIT overlay (leaves room for the bar at the top) ---------- */
+  /* ---------- EDIT overlay ---------- */
   #editorOverlay {
     position: fixed; inset: 0; background: #000;
     display: flex; flex-direction: column;
@@ -146,6 +146,7 @@
   <button type="button" data-mod="ctrl">Ctrl</button>
   <button type="button" data-mod="alt">Alt</button>
   <button type="button" data-mod="shift">Shift</button>
+  <button type="button" data-key="esc">Esc</button>
   <button type="button" data-key="tab">Tab</button>
   <button type="button" data-key="left">←</button>
   <button type="button" data-key="right">→</button>
@@ -660,6 +661,20 @@ async function cmdExport() {
 
 /* ---- EDIT ---- */
 let editingPath = null;
+
+function saveEditorFile() {
+  if (!editingPath) return false;
+  const parent = getParent(editingPath);
+  if (parent && parent.type === 'dir') {
+    parent.children[editingPath[editingPath.length-1]] = { type:'file', content: editorArea.value };
+    saveDisk();
+    print(t('written') + ' ' + editingPath[editingPath.length-1] +
+          ' (' + editorArea.value.length + ' ' + t('byteUnit') + ')');
+    return true;
+  }
+  return false;
+}
+
 function cmdEdit(args) {
   if (!args.length) { print(t('missingParam')); return; }
   const p = parsePath(args[0], cwd);
@@ -680,149 +695,6 @@ function closeEditor() {
   editorCursor.style.visibility = 'hidden';
   inputEl.focus(); refreshCmdCursor();
 }
-editorArea.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { e.preventDefault(); closeEditor(); return; }
-  if (e.ctrlKey && e.key.toLowerCase() === 's') {
-    e.preventDefault();
-    if (editingPath) {
-      const parent = getParent(editingPath);
-      if (parent && parent.type === 'dir') {
-        parent.children[editingPath[editingPath.length-1]] = { type:'file', content: editorArea.value };
-        saveDisk();
-        print(t('written') + ' ' + editingPath[editingPath.length-1] +
-              ' (' + editorArea.value.length + ' ' + t('byteUnit') + ')');
-      }
-    }
-    closeEditor();
-  }
-});
-
-/* ========== Real-computer file exchange ========== */
-async function saveFileToRealPC(filename, content) {
-  const blob = new Blob([content], { type:'text/plain;charset=utf-8' });
-  if (window.showSaveFilePicker) {
-    try {
-      const h = await window.showSaveFilePicker({ suggestedName: filename });
-      const w = await h.createWritable(); await w.write(blob); await w.close(); return true;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return false;
-    }
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  return true;
-}
-async function writeTree(dirHandle, node) {
-  for (const [name, child] of Object.entries(node.children)) {
-    if (child.type === 'dir') {
-      const sub = await dirHandle.getDirectoryHandle(name, { create: true });
-      await writeTree(sub, child);
-    } else {
-      const fh = await dirHandle.getFileHandle(name, { create: true });
-      const w = await fh.createWritable();
-      await w.write(new Blob([child.content], { type:'text/plain;charset=utf-8' }));
-      await w.close();
-    }
-  }
-}
-function collectFiles(node, prefix, out) {
-  out = out || [];
-  for (const [name, child] of Object.entries(node.children)) {
-    if (child.type === 'dir') collectFiles(child, prefix + name + '_', out);
-    else out.push({ name: prefix + name, content: child.content });
-  }
-  return out;
-}
-async function cmdSave(args) {
-  if (!args.length) { print(t('missingParam')); return; }
-  const p = parsePath(args[0], cwd);
-  const node = getNode(p);
-  if (!node || node.type !== 'file') { print(t('fileNotFound')); return; }
-  const fname = p[p.length-1];
-  print(t('saving') + ' ' + fname + ' ...');
-  const ok = await saveFileToRealPC(fname, node.content);
-  print(ok ? t('savedTo') + fname : t('saveCancelled'));
-}
-async function cmdSaveAll() {
-  if (window.showDirectoryPicker) {
-    try {
-      print(t('chooseFolder'));
-      const dir = await window.showDirectoryPicker({ mode:'readwrite' });
-      await writeTree(dir, disk);
-      print(t('savedAll')); return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') { print(t('cancelled')); return; }
-      print(t('saveFailed') + err.message); return;
-    }
-  }
-  const files = collectFiles(disk, '');
-  print(t('noFolderSupport') + files.length + t('filesWord'));
-  for (const f of files) { await saveFileToRealPC(f.name, f.content); await sleep(350); }
-  print(t('allDownloads'));
-}
-function cmdLoad() {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.multiple = true;
-  inp.onchange = async () => {
-    const target = getNode(cwd);
-    if (!target) return;
-    for (const f of inp.files) {
-      const text = await f.text();
-      const name = f.name.toUpperCase();
-      target.children[name] = { type:'file', content: text };
-      print(t('loaded') + name + ' (' + text.length + ' ' + t('byteUnit') + ')');
-    }
-    saveDisk();
-  };
-  inp.click();
-  print(t('selectFiles'));
-}
-function cmdFormat(args) {
-  const ok = args.some(a => ['/Y','/Q'].includes(a.toUpperCase()));
-  if (!ok) { print(t('formatWarn1')); print(t('formatWarn2')); return; }
-  disk = { name:'C:', type:'dir', children:{ 'DOS':{type:'dir',children:{}}, 'PY':{type:'dir',children:{}} } };
-  cwd = []; saveDisk(); updatePrompt(); print(t('formatDone'));
-}
-function cmdReset() {
-  disk = defaultDisk(); cwd = []; saveDisk(); updatePrompt();
-  print(t('factoryReset'));
-}
-function cmdExit() { print(''); print(t('exit1')); print(t('exit2')); }
-
-/* ========== Command table ========== */
-const COMMANDS = {
-  HELP: cmdHelp, '?': cmdHelp,
-  DIR: cmdDir, DIRECTORY: cmdDir,
-  CD: cmdCd, CHDIR: cmdCd,
-  MD: cmdMd, MKDIR: cmdMd,
-  RD: cmdRd, RMDIR: cmdRd,
-  DEL: cmdDel, ERASE: cmdDel,
-  TYPE: cmdType, COPY: cmdCopy,
-  REN: cmdRen, RENAME: cmdRen,
-  ECHO: cmdEcho, CLS: cmdCls, VER: cmdVer,
-  DATE: cmdDate, TIME: cmdTime, TREE: cmdTree,
-  EDIT: cmdEdit,
-  PY: cmdPy, PYTHON: cmdPy,
-  LANG: cmdLang, LANGUAGE: cmdLang,
-  IMPORT: cmdImport, IMPORTDATA: cmdImport,
-  EXPORT: cmdExport,
-  SAVE: cmdSave, SAVEALL: cmdSaveAll, LOAD: cmdLoad,
-  FORMAT: cmdFormat, RESET: cmdReset, EXIT: cmdExit
-};
-
-async function runCommand(line) {
-  const { cmd, out } = splitRedirect(line);
-  const tokens = tokenize(cmd);
-  if (!tokens.length) return;
-  const name = tokens[0].toUpperCase();
-  const args = tokens.slice(1);
-  const fn = COMMANDS[name];
-  if (!fn) { print(t('badCmd') + tokens[0]); return; }
-  await fn(args, out);
-}
 
 /* =========================================================
    Mobile auxiliary key bar (top, always visible on touch)
@@ -839,11 +711,25 @@ function updateMobileBar() {
   document.body.classList.toggle('has-mobile-bar', show);
 }
 
-/* Prevent the on-screen keyboard from being dismissed by taps on the bar */
-mobileKeysEl.addEventListener('mousedown', e => e.preventDefault());
-mobileKeysEl.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+function resetMods() {
+  modState.ctrl = false;
+  modState.alt = false;
+  modState.shift = false;
+  mobileKeysEl.querySelectorAll('button[data-mod]').forEach(b => {
+    b.classList.toggle('active', modState[b.dataset.mod]);
+  });
+}
 
-/* Command-line Tab completion */
+/* 当前焦点所在的可编辑元素（编辑器优先，否则命令行） */
+function currentTarget() {
+  return editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
+}
+
+/* =========================================================
+   软键盘按键处理
+   ========================================================= */
+
+/* 命令补全 */
 function commandComplete() {
   const val = inputEl.value;
   if (!val.trim()) return;
@@ -863,7 +749,7 @@ function commandComplete() {
   }
 }
 
-/* Move cursor by word (Ctrl/Alt + arrow) */
+/* 按词移动 */
 function wordMove(el, dir) {
   const v = el.value;
   let p = dir < 0 ? el.selectionStart : el.selectionEnd;
@@ -877,9 +763,37 @@ function wordMove(el, dir) {
   return p;
 }
 
+/* 触发 Ctrl 组合键（供软键盘按钮和软键盘字符键共用） */
+function fireCtrlShortcut(k) {
+  const isEditor = !editorOverlay.classList.contains('hidden');
+  if (k === 's') {
+    if (isEditor) { saveEditorFile(); closeEditor(); }
+    return true;
+  }
+  if (k === 'l') {
+    outputEl.innerHTML = '';
+    return true;
+  }
+  if (k === 'c') {
+    /* 取消：清空待确认、清空输入 */
+    pendingConfirm = null;
+    if (isEditor) { editorArea.value = ''; refreshEditorCursor(); }
+    else { inputEl.value = ''; refreshCmdCursor(); }
+    return true;
+  }
+  return false;
+}
+
 function handleMobileKey(key) {
-  const isEditor = document.activeElement === editorArea;
+  const isEditor = !editorOverlay.classList.contains('hidden');
   const el = isEditor ? editorArea : inputEl;
+
+  if (key === 'esc') {
+    resetMods();
+    if (isEditor) closeEditor();
+    else { inputEl.value = ''; refreshCmdCursor(); }
+    return;
+  }
 
   if (key === 'tab') {
     if (isEditor) {
@@ -949,39 +863,96 @@ function handleMobileKey(key) {
   }
 }
 
-function resetMods() {
-  modState.ctrl = false;
-  modState.alt = false;
-  modState.shift = false;
-  mobileKeysEl.querySelectorAll('button[data-mod]').forEach(b => {
-    b.classList.toggle('active', modState[b.dataset.mod]);
-  });
+/* =========================================================
+   键盘事件：合并真实修饰键和屏幕上的修饰键
+   ========================================================= */
+function handleModKeys(e, isEditor) {
+  const ctrl = e.ctrlKey || modState.ctrl;
+  const alt  = e.altKey  || modState.alt;
+
+  /* Esc 键 */
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    resetMods();
+    if (isEditor) closeEditor();
+    else { inputEl.value = ''; refreshCmdCursor(); }
+    return true;
+  }
+
+  /* Ctrl + 字符键（软键盘输入字符时也能识别） */
+  if (ctrl && e.key.length === 1) {
+    const k = e.key.toLowerCase();
+    e.preventDefault();
+    const handled = fireCtrlShortcut(k);
+    resetMods();
+    if (handled) return true;
+    return false;
+  }
+
+  /* Alt + 字符键暂时不处理，防止意外输入 */
+  if (alt && e.key.length === 1) {
+    e.preventDefault();
+    resetMods();
+    return true;
+  }
+
+  return false;
 }
+
+/* 编辑器键盘事件 */
+editorArea.addEventListener('keydown', e => {
+  if (handleModKeys(e, true)) return;
+
+  if (e.ctrlKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    saveEditorFile();
+    closeEditor();
+    resetMods();
+    return;
+  }
+});
+
+/* 命令行的键盘事件在下方统一处理 */
+
+/* =========================================================
+   屏幕按键栏交互
+   ========================================================= */
+/* 阻止默认行为，避免软键盘收起 */
+mobileKeysEl.addEventListener('mousedown', e => e.preventDefault());
+mobileKeysEl.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 
 mobileKeysEl.addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
 
+  /* 修饰键：切换 */
   if (btn.dataset.mod) {
     const m = btn.dataset.mod;
     modState[m] = !modState[m];
     btn.classList.toggle('active', modState[m]);
-    const target = editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
-    if (document.activeElement !== target) target.focus();
+    const tgt = currentTarget();
+    if (document.activeElement !== tgt) tgt.focus();
     return;
   }
 
+  /* 普通按键 */
   const key = btn.dataset.key;
   if (key) {
     handleMobileKey(key);
-    const target = editorOverlay.classList.contains('hidden') ? inputEl : editorArea;
-    if (document.activeElement !== target) target.focus();
+    const tgt = currentTarget();
+    if (document.activeElement !== tgt) tgt.focus();
   }
 });
 
-/* ========== Input handling ========== */
+/* =========================================================
+   输入处理
+   ========================================================= */
 let history = [], histIdx = 0;
+
 inputEl.addEventListener('keydown', async e => {
+  /* 先处理修饰键组合 */
+  if (handleModKeys(e, false)) return;
+
   if (e.key === 'Enter') {
     const line = inputEl.value;
     inputEl.value = '';
@@ -1025,6 +996,7 @@ inputEl.addEventListener('keydown', async e => {
   }
   setTimeout(refreshCmdCursor, 0);
 });
+
 ['input','keyup','click','select','focus','blur','mouseup','compositionend','scroll'].forEach(ev => {
   inputEl.addEventListener(ev, () => setTimeout(refreshCmdCursor, 0));
 });
@@ -1054,7 +1026,7 @@ screenEl.addEventListener('click', e => {
     if (saved) { targetLang = saved; document.documentElement.lang = saved; }
   } catch (e) {}
 
-  updateMobileBar();       /* decide whether the top bar is shown */
+  updateMobileBar();
   inputEl.focus();
   refreshCmdCursor();
 })();
