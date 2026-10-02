@@ -224,7 +224,6 @@
     overflow: hidden;
   }
 
-  /* 悬停 / 选中：只加高亮边框，不做反色 */
   .gui-icon:hover,
   .gui-icon.selected {
     background: #3333cc;
@@ -243,58 +242,31 @@
     max-width: 100%;
   }
 
-  /* ---------- Explorer 网格（正方形） ---------- */
-  .exp-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-    gap: 8px;
-    align-content: start;
-  }
-
+  /* ---------- Explorer 列表（回到以前格式） ---------- */
+  .exp-list { padding: 0; margin: 0; }
   .exp-item {
-    aspect-ratio: 1 / 1;
-    background: transparent;
-    border: 2px solid transparent;
-    border-radius: 2px;
-    padding: 6px 4px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    padding: 6px 12px;
     color: #ffffff;
     cursor: none;
+    white-space: pre;
+    font-family: "SVGAFix", "Consolas", "Courier New", monospace;
     user-select: none; -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
-    font-family: "SVGAFix", "Consolas", "Courier New", monospace;
+    font-size: 14px;
   }
 
   .exp-item:hover,
   .exp-item.selected {
     background: #3333cc;
-    border-color: #ffffff;
     outline: 1px dotted #ffffff;
-    outline-offset: -4px;
+    outline-offset: -2px;
   }
 
-  .exp-item .exp-icon {
-    font-size: 26px;
-    line-height: 1;
-    margin-bottom: 4px;
-    color: #ffff55;
-  }
-  .exp-item.dir    .exp-icon { color: #55ffff; }
-  .exp-item.parent .exp-icon { color: #55ff55; }
+  .exp-item .tag { color: #ffff55; margin-right: 8px; }
+  .exp-item.dir .tag { color: #55ffff; }
+  .exp-item.parent .tag { color: #55ff55; }
 
-  .exp-item .exp-name {
-    font-size: 12px;
-    text-align: center;
-    word-break: break-all;
-    line-height: 1.1;
-    max-width: 100%;
-    max-height: 2.4em;
-    overflow: hidden;
-  }
-
-  /* ---------- Explorer 底部按钮 ---------- */
+  /* ---------- Explorer 底部按钮（单击） ---------- */
   .exp-buttons { display: flex; flex-wrap: wrap; gap: 3px; }
   .exp-buttons button {
     flex: 1 1 auto;
@@ -353,14 +325,14 @@
   <div class="app-body">
     <div class="icon-grid" id="guiIcons"></div>
   </div>
-  <div class="app-status" id="guiStatus">←→ Select   Enter Open   Esc Close</div>
+  <div class="app-status" id="guiStatus">Double-click Open   ←→ Select   Esc Close</div>
 </div>
 
 <!-- Explorer (fullscreen) -->
 <div id="explorerOverlay" class="fullscreen-app hidden">
   <div class="app-title" id="expTitle">-OS Explorer</div>
   <div class="app-body">
-    <div class="exp-grid" id="expList"></div>
+    <div class="exp-list" id="expList"></div>
   </div>
   <div class="app-status with-buttons">
     <div class="exp-buttons" id="explorerButtons">
@@ -1123,7 +1095,7 @@ async function runCommand(line) {
 }
 
 /* =========================================================
-   GUI（正方形图标，只支持左右移动）
+   GUI（正方形图标，双击打开，只支持左右）
    ========================================================= */
 let guiSel = 0;
 
@@ -1143,7 +1115,9 @@ function renderGUI() {
     el.innerHTML =
       '<div class="icon-img">' + icon.glyph + '</div>' +
       '<div class="icon-title">' + escapeHTML(icon.title) + '</div>';
-    el.addEventListener('click', () => { guiSel = i; renderGUI(); guiActivate(); });
+    /* 双击打开 */
+    el.addEventListener('dblclick', () => { guiSel = i; renderGUI(); guiActivate(); });
+    /* 鼠标进入同步选中 */
     el.addEventListener('mouseenter', () => {
       guiSel = i;
       guiIconsEl.querySelectorAll('.gui-icon').forEach((n, k) => {
@@ -1205,7 +1179,7 @@ function guiActivate() {
 function cmdGUI() { openGUI(); }
 
 /* =========================================================
-   Explorer（正方形网格，支持全部方向键）
+   Explorer（列表格式，只支持上下键，双击打开）
    ========================================================= */
 let expCwd = [];
 let expSel = 0;
@@ -1219,11 +1193,6 @@ function getExplorerItems() {
   const keys = Object.keys(node.children).sort();
   for (const k of keys) items.push({ name: k, type: node.children[k].type });
   return items;
-}
-
-function getExpCols() {
-  const w = expList.clientWidth;
-  return Math.max(1, Math.floor((w + 8) / (88 + 8)));
 }
 
 function renderExplorer() {
@@ -1241,16 +1210,13 @@ function renderExplorer() {
     if (item.type === 'parent') cls += ' parent';
     if (i === expSel)           cls += ' selected';
     el.className = cls;
-
-    let glyph = '▤';
-    if (item.type === 'dir')    glyph = '▣';
-    if (item.type === 'parent') glyph = '↑';
-
-    el.innerHTML =
-      '<div class="exp-icon">' + glyph + '</div>' +
-      '<div class="exp-name">' + escapeHTML(item.name) + '</div>';
-
-    el.addEventListener('click', () => { expSel = i; renderExplorer(); expEnter(); });
+    const tag = item.type === 'dir'    ? '[DIR]'
+              : item.type === 'parent' ? '[UP] '
+              :                          '[FILE]';
+    el.innerHTML = '<span class="tag">' + tag + '</span>' + escapeHTML(item.name);
+    /* 双击打开 */
+    el.addEventListener('dblclick', () => { expSel = i; expEnter(); });
+    /* 鼠标进入同步选中 */
     el.addEventListener('mouseenter', () => {
       expSel = i;
       expList.querySelectorAll('.exp-item').forEach((n, k) => {
@@ -1304,14 +1270,12 @@ function expEnter() {
   }
 }
 
-function expNavigate(dx, dy) {
-  const cols = getExpCols();
+/* Explorer 只支持上下移动 */
+function expNavigate(d) {
   const n = getExplorerItems().length;
-  let idx = expSel;
-  if (dx === -1) idx = Math.max(0, idx - 1);
-  else if (dx === 1) idx = Math.min(n - 1, idx + 1);
-  else if (dy === -1) idx = Math.max(0, idx - cols);
-  else if (dy === 1) { const nx = idx + cols; if (nx < n) idx = nx; }
+  let idx = expSel + d;
+  if (idx < 0) idx = 0;
+  if (idx > n - 1) idx = n - 1;
   if (idx !== expSel) {
     expSel = idx;
     expList.querySelectorAll('.exp-item').forEach((n, k) => {
@@ -1434,15 +1398,15 @@ function expDelete() {
 
 function cmdExplorer() { openExplorer(); }
 
-/* ========== Explorer 底部按钮 ========== */
+/* ========== Explorer 底部按钮（单击即可） ========== */
 explorerButtons.addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
   const act = btn.dataset.act;
   switch (act) {
     case 'back':   expBack();   break;
-    case 'up':     expNavigate(0, -1); break;
-    case 'down':   expNavigate(0,  1); break;
+    case 'up':     expNavigate(-1); break;
+    case 'down':   expNavigate( 1); break;
     case 'open':      expEnter();     break;
     case 'rename':    expRename();    break;
     case 'copy':      expCopy();      break;
@@ -1455,15 +1419,13 @@ explorerButtons.addEventListener('click', e => {
   }
 });
 
-/* ========== Explorer 键盘 ========== */
+/* ========== Explorer 键盘（只处理上下） ========== */
 document.addEventListener('keydown', e => {
   if (explorerOverlay.classList.contains('hidden')) return;
   let handled = true;
   if (e.key === 'Escape') expBack();
-  else if (e.key === 'ArrowUp')    expNavigate(0, -1);
-  else if (e.key === 'ArrowDown')  expNavigate(0,  1);
-  else if (e.key === 'ArrowLeft')  expNavigate(-1, 0);
-  else if (e.key === 'ArrowRight') expNavigate( 1, 0);
+  else if (e.key === 'ArrowUp')    expNavigate(-1);
+  else if (e.key === 'ArrowDown')  expNavigate( 1);
   else if (e.key === 'Enter') expEnter();
   else if (e.key === 'Delete' || e.key === 'Backspace') expDelete();
   else {
@@ -1668,18 +1630,17 @@ function commandComplete() {
 }
 
 function handleMobileKey(key) {
-  /* Explorer 优先 —— 全部方向键都有效 */
+  /* Explorer 优先 —— 只处理上下 */
   if (!explorerOverlay.classList.contains('hidden')) {
     if (key === 'esc') expBack();
-    else if (key === 'up')    expNavigate(0, -1);
-    else if (key === 'down')  expNavigate(0,  1);
-    else if (key === 'left')  expNavigate(-1, 0);
-    else if (key === 'right') expNavigate( 1, 0);
+    else if (key === 'up')   expNavigate(-1);
+    else if (key === 'down') expNavigate( 1);
     else if (key === 'enter' || key === 'tab') expEnter();
+    /* left / right 在 Explorer 中不做事 */
     return;
   }
 
-  /* GUI 次之 —— 只处理左右，上下不做任何事 */
+  /* GUI 次之 —— 只处理左右 */
   if (!guiOverlay.classList.contains('hidden')) {
     if (key === 'esc') closeGUI();
     else if (key === 'left')  guiNavigate(-1);
@@ -1773,7 +1734,7 @@ function handleMobileKey(key) {
    ========================================================= */
 document.addEventListener('keydown', e => {
   if (guiOverlay.classList.contains('hidden')) return;
-  /* GUI 里上下键不做事，但也吞掉以免影响其他 */
+  /* GUI 里上下键不做事 */
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     e.preventDefault(); e.stopPropagation();
     return;
@@ -1872,8 +1833,6 @@ document.addEventListener('selectionchange', () => {
 });
 window.addEventListener('resize', () => {
   refreshCmdCursor(); refreshEditorCursor();
-  if (!guiOverlay.classList.contains('hidden')) renderGUI();
-  if (!explorerOverlay.classList.contains('hidden')) renderExplorer();
 });
 ['input','keyup','keydown','click','select','focus','blur','mouseup','scroll','compositionend'].forEach(ev => {
   editorArea.addEventListener(ev, () => setTimeout(refreshEditorCursor, 0));
